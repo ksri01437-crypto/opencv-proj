@@ -1,0 +1,13 @@
+{
+  "name": "opencv-gesture-shooter-mern",
+  "version": "1.0.0",
+  "description": "MERN Stack OpenCV Web Gaming Application - Gesture Aim & Eye Shoot",
+  "scripts": {
+    "server": "cd server && npm start",
+    "client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
