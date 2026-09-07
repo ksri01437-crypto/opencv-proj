@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 GESTURE FRUIT - Hand + Eye Interactive Game</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body class="game-page">
+    <div id="game-container">
+        <!-- TOP HUD BAR -->
+        <header id="hud">
+            <div class="hud-brand">
+                <a href="/" class="back-link" title="Return to Home">🏠 HOME</a>
+                <span class="hud-logo">🍉</span>
+                <span class="hud-title">GESTURE FRUIT</span>
+            </div>
+            
+            <div class="hud-stats">
+                <div class="stat-box">
+                    <span class="stat-label">LEVEL</span>
+                    <span id="level-val" class="stat-value">1</span>
+                </div>
+
+                <div class="stat-box">
+                    <span class="stat-label">SCORE</span>
+                    <span id="score-val" class="stat-value">0</span>
+                </div>
+                
+                <div class="stat-box">
+                    <span class="stat-label">BEST</span>
+                    <span id="best-score-val" class="stat-value">0</span>
+                </div>
+
+                <div class="stat-box combo-box">
+                    <span class="stat-label">COMBO</span>
+                    <span id="combo-val" class="stat-value combo-active">🔥 x1</span>
+                </div>
+
+                <div class="stat-box lives-box">
+                    <span class="stat-label">LIVES</span>
+                    <span id="lives-val" class="stat-value">❤️❤️❤️</span>
+                </div>
+
+                <div class="stat-box">
+                    <span class="stat-label">TIME</span>
+                    <span id="timer-val" class="stat-value">0s</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN GAME CANVAS -->
+        <canvas id="game-canvas"></canvas>
+
+        <!-- VIRTUAL HAND POINTER CURSOR -->
+        <div id="virtual-pointer" class="hidden">
+            <div class="pointer-ring"></div>
+            <div class="pointer-dot"></div>
+            <div class="pointer-aura"></div>
+            <svg class="pointer-svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="rgba(0, 255, 204, 0.8)" stroke-width="4" fill="none" stroke-dasharray="276" stroke-dashoffset="276" id="hover-progress-circle"/>
+            </svg>
+        </div>
+
+        <!-- FLOATING BOTTOM-RIGHT CAMERA PREVIEW -->
+        <div id="camera-panel" class="bottom-right-panel">
+            <div class="camera-header">
+                <span class="live-badge"><span class="pulse-dot">●</span> LIVE</span>
+                <span id="fps-counter">60 FPS</span>
+            </div>
+            <div class="camera-view">
+                <img id="webcam-feed" src="" alt="Webcam Feed Loading...">
+                <video id="webcam-fallback-video" class="hidden" autoplay playsinline muted></video>
+                <canvas id="webcam-fallback-canvas" class="hidden"></canvas>
+            </div>
+            <div class="gesture-status">
+                <div class="status-row">
+                    <span class="status-lbl">HAND</span>
+                    <span id="status-hand" class="status-tag tag-pointing">☝ POINTING</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">LEFT EYE</span>
+                    <span id="status-left-eye" class="status-tag tag-open">👁️ OPEN</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">RIGHT EYE</span>
+                    <span id="status-right-eye" class="status-tag tag-open">👁️ OPEN</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">ACTION</span>
+                    <span id="status-action" class="status-tag tag-idle">MOVING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- START SCREEN MODAL -->
+        <div id="start-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-icon">🍉</div>
+                <h1 class="modal-title">GESTURE FRUIT</h1>
+                <p class="modal-subtitle">LEVEL 1: SLOW & EASY FLOATY FRUITS</p>
+                
+                <div class="controls-grid">
+                    <div class="control-card">
+                        <div class="ctrl-icon">☝</div>
+                        <div class="ctrl-title">POINT INDEX FINGER</div>
+                        <div class="ctrl-desc">Aim glowing virtual cursor across screen</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">✋</div>
+                        <div class="ctrl-title">FAST HAND SWIPE</div>
+                        <div class="ctrl-desc">Slice fruits in any direction</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">👁️ (L)</div>
+                        <div class="ctrl-title">LEFT EYE WINK</div>
+                        <div class="ctrl-desc">Close left eye (>300ms) to Left Click / Select</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">👁️ (R)</div>
+                        <div class="ctrl-title">RIGHT EYE WINK</div>
+                        <div class="ctrl-desc">Close right eye (>300ms) for Special Action</div>
+                    </div>
+                </div>
+
+                <div class="start-btn-wrapper">
+                    <button id="btn-start" class="btn-primary gesture-btn">
+                        <span class="btn-icon">🎮</span> START GAME
+                    </button>
+                    <a href="/" class="btn-secondary">🏠 MAIN MENU</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAUSE MODAL -->
+        <div id="pause-modal" class="modal-overlay hidden">
+            <div class="modal-card mini-card">
+                <div class="modal-icon">⏸️</div>
+                <h2 class="modal-title">GAME PAUSED</h2>
+                <p class="modal-subtitle">Close left eye to continue or select options below</p>
+                
+                <div class="modal-actions">
+                    <button id="btn-resume" class="btn-primary gesture-btn">▶️ RESUME</button>
+                    <button id="btn-restart-pause" class="btn-secondary gesture-btn">🔄 RESTART</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER MODAL -->
+        <div id="game-over-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-icon">💥</div>
+                <h1 class="modal-title">GAME OVER</h1>
+                
+                <div class="game-over-stats">
+                    <div class="go-stat">
+                        <span class="go-label">FINAL SCORE</span>
+                        <span id="go-score" class="go-val highlight">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">BEST SCORE</span>
+                        <span id="go-best-score" class="go-val">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">FRUITS SLICED</span>
+                        <span id="go-slices" class="go-val">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">MAX COMBO</span>
+                        <span id="go-max-combo" class="go-val">x1</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="btn-play-again" class="btn-primary gesture-btn">🎮 PLAY AGAIN</button>
+                    <a href="/" class="btn-secondary">🏠 HOME</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sound.js"></script>
+    <script src="/static/js/client_mediapipe.js"></script>
+    <script src="/static/js/game.js"></script>
+    <script src="/static/js/ui.js"></script>
+</body>
+</html>

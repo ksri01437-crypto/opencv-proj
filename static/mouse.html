@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🖱️ GESTURE MOUSE - Real OS Mouse Control</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body class="mouse-page">
+    <div class="mouse-dashboard">
+        <!-- DASHBOARD HEADER -->
+        <header class="dash-header">
+            <div class="dash-brand">
+                <a href="/" class="back-link">🏠 HOME</a>
+                <span class="dash-logo">🖱️</span>
+                <h1 class="dash-title">REAL COMPUTER MOUSE CONTROL</h1>
+            </div>
+            <div class="dash-controls">
+                <button id="toggle-mouse-btn" class="toggle-btn active">
+                    <span class="dot-indicator green">●</span> MOUSE CONTROL: ACTIVE
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD BODY -->
+        <main class="dash-main">
+            <!-- LEFT PANEL: CAMERA VIEW -->
+            <section class="dash-card camera-card">
+                <div class="card-header">
+                    <h3>📷 LIVE WEBCAM FEED</h3>
+                    <span class="live-badge"><span class="pulse-dot">●</span> LIVE</span>
+                </div>
+                <div class="dash-camera-view">
+                    <img id="webcam-feed" src="" alt="Webcam Loading...">
+                    <video id="webcam-fallback-video" class="hidden" autoplay playsinline muted></video>
+                    <canvas id="webcam-fallback-canvas" class="hidden"></canvas>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: GESTURE STATUS & LIVE METRICS -->
+            <section class="dash-card status-card">
+                <div class="card-header">
+                    <h3>📊 LIVE GESTURE TELEMETRY</h3>
+                </div>
+
+                <div class="telemetry-grid">
+                    <div class="tel-item">
+                        <span class="tel-lbl">OS CURSOR POSITION</span>
+                        <span id="tel-cursor-pos" class="tel-val">X: 960 | Y: 540</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="tel-lbl">HAND GESTURE</span>
+                        <span id="tel-hand-status" class="tel-val highlight">☝ MOVING CURSOR</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="tel-lbl">LEFT EYE WINK</span>
+                        <span id="tel-left-eye" class="tel-val">👁️ OPEN</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="tel-lbl">RIGHT EYE WINK</span>
+                        <span id="tel-right-eye" class="tel-val">👁️ OPEN</span>
+                    </div>
+                    <div class="tel-item">
+                        <span class="tel-lbl">SYSTEM ACTION</span>
+                        <span id="tel-action" class="tel-val action-tag">IDLE</span>
+                    </div>
+                </div>
+
+                <div class="guide-box">
+                    <h4>💡 GESTURE REFERENCE GUIDE</h4>
+                    <ul>
+                        <li><strong>☝ Index Finger Pointing:</strong> Moves real OS laptop mouse cursor across screen</li>
+                        <li><strong>👁️ Left Eye Wink (>280ms):</strong> Triggers real OS Left Click</li>
+                        <li><strong>👁️ Right Eye Wink (>280ms):</strong> Triggers real OS Right Click</li>
+                        <li><strong>👌 Pinch Finger:</strong> Holds Left Mouse Down (Drag & Drop)</li>
+                        <li><strong>😑 Both Eyes Closed:</strong> Toggles Mouse Control ON/OFF</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MOUSE DASHBOARD JAVASCRIPT -->
+    <script src="/static/js/sound.js"></script>
+    <script src="/static/js/client_mediapipe.js"></script>
+    <script src="/static/js/mouse_dashboard.js"></script>
+</body>
+</html>

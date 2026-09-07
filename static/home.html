@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✋ GESTURE LAB - Home Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body class="home-body">
+    <div class="home-container">
+        <header class="home-header">
+            <div class="home-logo">✋ GESTURE LAB</div>
+            <p class="home-tagline">Control your computer differently using Hand & Eye Gestures</p>
+        </header>
+
+        <main class="options-grid">
+            <!-- OPTION 1: GESTURE FRUIT GAME -->
+            <div class="option-card game-card">
+                <div class="card-badge">MODE 1</div>
+                <div class="card-icon">🎮</div>
+                <h2 class="card-title">GESTURE FRUIT GAME</h2>
+                <p class="card-desc">
+                    Slice floating fruits using fast hand swipes and eye winks. 
+                    <br><strong>100% Isolated inside browser canvas. Zero OS mouse movement.</strong>
+                </p>
+                <ul class="card-features">
+                    <li>☝ Hand Index Finger Aiming</li>
+                    <li>✋ Fast Hand Swipe Fruit Slicing</li>
+                    <li>👁️ Eye Wink Actions & Combos</li>
+                    <li>📌 Bottom-Right Floating Camera</li>
+                </ul>
+                <a href="/game" class="card-btn btn-game">🎮 PLAY GAME</a>
+            </div>
+
+            <!-- OPTION 2: REAL MOUSE CONTROL -->
+            <div class="option-card mouse-card">
+                <div class="card-badge">MODE 2</div>
+                <div class="card-icon">🖱️</div>
+                <h2 class="card-title">REAL COMPUTER MOUSE</h2>
+                <p class="card-desc">
+                    Transform your webcam into a real wireless desktop mouse.
+                    <br><strong>Moves real laptop cursor, executes OS left/right clicks via PyAutoGUI.</strong>
+                </p>
+                <ul class="card-features">
+                    <li>☝ Move Real Laptop OS Cursor</li>
+                    <li>👁️ Left Eye Wink → Real Left Click</li>
+                    <li>👁️ Right Eye Wink → Real Right Click</li>
+                    <li>👌 Pinch Finger → Drag & Drop</li>
+                </ul>
+                <a href="/mouse" class="card-btn btn-mouse">🖱️ CONTROL MOUSE</a>
+            </div>
+        </main>
+
+        <footer class="home-footer">
+            <span>Powered by MediaPipe, OpenCV, FastAPI & PyAutoGUI</span>
+        </footer>
+    </div>
+</body>
+</html>

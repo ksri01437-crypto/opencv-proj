@@ -1,0 +1,545 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0b0c10;
+    font-family: 'Outfit', sans-serif;
+    color: #ffffff;
+}
+
+/* HOME PLATFORM STYLES */
+.home-body {
+    background: radial-gradient(circle at 50% 30%, #1a1d2e 0%, #090a10 100%);
+    overflow-y: auto;
+}
+
+.home-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    justify-content: space-between;
+}
+
+.home-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.home-logo {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, #00ffcc, #ff00cc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+}
+
+.home-tagline {
+    font-size: 1.1rem;
+    color: #8c97b8;
+    letter-spacing: 1px;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.option-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(22, 26, 42, 0.9), rgba(14, 16, 26, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    padding: 40px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.option-card:hover {
+    transform: translateY(-8px);
+}
+
+.game-card:hover {
+    border-color: rgba(0, 255, 204, 0.5);
+    box-shadow: 0 20px 50px rgba(0, 255, 204, 0.2);
+}
+
+.mouse-card:hover {
+    border-color: rgba(255, 0, 204, 0.5);
+    box-shadow: 0 20px 50px rgba(255, 0, 204, 0.2);
+}
+
+.card-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #00ffcc;
+}
+
+.card-icon {
+    font-size: 4rem;
+    margin-bottom: 15px;
+}
+
+.card-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.1rem;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.card-desc {
+    font-size: 0.85rem;
+    color: #a0aabf;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.card-features {
+    list-style: none;
+    text-align: left;
+    margin-bottom: 30px;
+    width: 100%;
+}
+
+.card-features li {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-btn {
+    display: inline-block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-game {
+    background: linear-gradient(135deg, #00ffcc, #0099ff);
+    color: #050a14;
+    box-shadow: 0 6px 20px rgba(0, 255, 204, 0.4);
+}
+
+.btn-game:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 30px rgba(0, 255, 204, 0.7);
+}
+
+.btn-mouse {
+    background: linear-gradient(135deg, #ff00cc, #7000ff);
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(255, 0, 204, 0.4);
+}
+
+.btn-mouse:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 30px rgba(255, 0, 204, 0.7);
+}
+
+.home-footer {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 20px;
+}
+
+/* TOP HUD BAR */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 65px;
+    background: rgba(15, 17, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 25px;
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.back-link {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-right: 15px;
+    transition: background 0.2s;
+}
+
+.back-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.hud-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-logo {
+    font-size: 1.8rem;
+}
+
+.hud-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.95rem;
+    background: linear-gradient(135deg, #00ffcc, #0099ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    color: #8a93b0;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.combo-box .stat-value {
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
+}
+
+/* MAIN GAME CANVAS */
+#game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    cursor: none;
+}
+
+/* VIRTUAL POINTER CURSOR */
+#virtual-pointer {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    margin-left: -22px;
+    margin-top: -22px;
+    pointer-events: none;
+    z-index: 999;
+}
+
+.pointer-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid #00ffcc;
+    border-radius: 50%;
+    box-shadow: 0 0 15px #00ffcc, inset 0 0 10px #00ffcc;
+}
+
+.pointer-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    margin-top: -5px;
+    background-color: #ffffff;
+    border-radius: 50%;
+}
+
+.pointer-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+/* FLOATING BOTTOM-RIGHT CAMERA PREVIEW */
+#camera-panel.bottom-right-panel {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    top: auto;
+    width: 230px;
+    background: rgba(18, 20, 32, 0.9);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(0, 255, 204, 0.4);
+    border-radius: 14px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.2);
+}
+
+.camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.live-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #00ff66;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pulse-dot {
+    color: #00ff66;
+    animation: blinkDot 1s infinite;
+}
+
+@keyframes blinkDot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+
+#fps-counter {
+    font-size: 0.65rem;
+    color: #8a93b0;
+}
+
+.camera-view {
+    position: relative;
+    width: 100%;
+    height: 140px;
+    background-color: #000000;
+}
+
+#webcam-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gesture-status {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(10, 12, 20, 0.95);
+}
+
+.status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.status-lbl { color: #7b85a2; }
+.status-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; }
+.tag-pointing { background: rgba(0, 255, 204, 0.15); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.4); }
+.tag-swipe { background: rgba(255, 204, 0, 0.2); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.5); }
+.tag-fist { background: rgba(255, 0, 102, 0.2); color: #ff0066; border: 1px solid rgba(255, 0, 102, 0.5); }
+.tag-open { background: rgba(0, 255, 102, 0.1); color: #00ff66; }
+.tag-closed { background: rgba(255, 0, 102, 0.25); color: #ff3366; }
+.tag-idle { background: rgba(255, 255, 255, 0.08); color: #a0aabf; }
+.tag-action { background: rgba(0, 153, 255, 0.25); color: #33ccff; border: 1px solid rgba(0, 153, 255, 0.5); }
+
+/* MODAL OVERLAYS */
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(7, 8, 14, 0.85);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.modal-card {
+    width: 90%;
+    max-width: 620px;
+    background: linear-gradient(145deg, rgba(22, 26, 42, 0.95), rgba(14, 16, 26, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 35px 30px;
+    text-align: center;
+}
+
+.modal-icon { font-size: 3.5rem; margin-bottom: 5px; }
+.modal-title { font-family: 'Press Start 2P', cursive; font-size: 1.5rem; background: linear-gradient(135deg, #00ffcc, #ff00cc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.modal-subtitle { font-size: 0.85rem; color: #8c97b8; margin-bottom: 25px; }
+
+.controls-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 30px; text-align: left; }
+.control-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 14px; }
+.ctrl-title { font-size: 0.75rem; font-weight: 800; color: #00ffcc; }
+.ctrl-desc { font-size: 0.7rem; color: #a0aabf; }
+
+.start-btn-wrapper, .modal-actions { display: flex; gap: 15px; justify-content: center; }
+.btn-primary { background: linear-gradient(135deg, #00ffcc, #0099ff); color: #050a14; padding: 14px 28px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; text-decoration: none; }
+.btn-secondary { background: rgba(255, 255, 255, 0.1); color: #ffffff; padding: 14px 28px; border-radius: 14px; font-weight: 800; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; text-decoration: none; }
+
+/* MOUSE DASHBOARD STYLES */
+.mouse-page {
+    background: radial-gradient(circle at 50% 20%, #151828 0%, #090a10 100%);
+    overflow-y: auto;
+}
+
+.mouse-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px 25px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-brand { display: flex; align-items: center; gap: 12px; }
+.dash-logo { font-size: 2rem; }
+.dash-title { font-family: 'Press Start 2P', cursive; font-size: 1rem; color: #ff00cc; }
+
+.toggle-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+.toggle-btn.active { background: rgba(0, 255, 102, 0.15); color: #00ff66; border: 1px solid rgba(0, 255, 102, 0.4); }
+.toggle-btn.inactive { background: rgba(255, 0, 102, 0.15); color: #ff0066; border: 1px solid rgba(255, 0, 102, 0.4); }
+
+.dash-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.dash-card {
+    background: linear-gradient(145deg, rgba(22, 26, 42, 0.9), rgba(14, 16, 26, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 25px;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+}
+
+.card-header h3 { font-size: 0.95rem; font-weight: 800; color: #00ffcc; }
+
+.dash-camera-view {
+    width: 100%;
+    height: 340px;
+    background: #000;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.telemetry-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.tel-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px 16px;
+    border-radius: 10px;
+}
+
+.tel-lbl { font-size: 0.75rem; color: #8c97b8; font-weight: 700; }
+.tel-val { font-size: 0.95rem; font-weight: 800; color: #ffffff; }
+.tel-val.highlight { color: #00ffcc; }
+
+.guide-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.guide-box h4 { font-size: 0.8rem; color: #ffcc00; margin-bottom: 10px; }
+.guide-box ul { list-style: none; }
+.guide-box li { font-size: 0.75rem; color: #cbd5e1; padding: 4px 0; }
+
+.hidden { display: none !important; }

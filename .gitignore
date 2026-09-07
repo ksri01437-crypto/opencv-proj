@@ -3,6 +3,14 @@ node_modules/
 client/node_modules/
 server/node_modules/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+venv/
+
 # Production build outputs
 dist/
 client/dist/

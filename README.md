@@ -1,62 +1,83 @@
-# OpenCV / MediaPipe CyberSniper (MERN Stack Gaming Application)
+# ✋ HAND + EYE GESTURE PLATFORM
+## Game Mode & Real Laptop Computer Mouse Control
 
-A full-stack **MERN (MongoDB, Express, React, Node.js)** computer vision web gaming application where players aim using **hand gestures** (index finger pointing) and shoot using **eye gestures** (winking/blinking) to eliminate 10 enemies per game match.
+A full-stack computer vision web platform powered by **Python, OpenCV, MediaPipe, FastAPI, WebSockets, HTML5 Canvas, and PyAutoGUI**.
 
----
-
-## Features
-
-- **Hand Gesture Aiming**: MediaPipe Hands tracks landmark #8 (Index Finger Tip) and translates webcam movement into smooth screen crosshairs.
-- **Eye Gesture Shooting**: MediaPipe Face Mesh calculates Eye Aspect Ratio (EAR) for left and right eyes to detect winks/blinks and trigger high-speed laser blasts.
-- **10 Enemies Wave System**: Each game session spawns 10 animated target drones with varying movement speeds and points.
-- **MERN Stack Leaderboard**: Saves high scores, enemies shot count (0 to 10), accuracy percentage, and time taken to a MongoDB / Express API backend with real-time global leaderboard rendering.
-- **Web Audio Sound Synthesizer**: Programmatic arcade laser blasts, explosion booms, and victory fanfares via Web Audio API.
+The platform features **TWO SEPARATE, FULLY INDEPENDENT MODES**:
+1. **🎮 GESTURE FRUIT GAME (`/game`)**: Pure browser-based fruit slicing game. 100% isolated inside browser canvas (Zero PyAutoGUI or OS mouse interaction). Features slow floaty fruit physics, progressive difficulty levels, and floating camera preview in the **BOTTOM-RIGHT CORNER**.
+2. **🖱️ REAL COMPUTER MOUSE CONTROL (`/mouse`)**: Direct laptop OS cursor control using PyAutoGUI. Move real OS mouse with index finger, execute real OS left clicks (left eye wink), right clicks (right eye wink), drag & drop (pinch), and scroll.
 
 ---
 
-## Tech Stack
+## 🚀 Features
 
-- **Frontend**: React 18, Vite, Canvas 2D Engine, MediaPipe Hands & Face Mesh, Lucide Icons, Canvas Confetti.
-- **Backend**: Node.js, Express.js, Mongoose / MongoDB (with auto In-Memory fallback).
+- **Landing Page (`/`)**: Modern UI to choose between Game Mode and Mouse Control Mode.
+- **MediaPipe Hand Tracking**: Index fingertip tracking with exponential moving average coordinate smoothing.
+- **Swipe Velocity Slicing**: 200ms position history buffer detecting swipe direction, speed, and path intersection.
+- **Eye Aspect Ratio (EAR) Tracker**: Calculates eye closure independently for left and right eyes.
+- **Blink vs. Intentional Gesture Filtering**: Short blinks (<180ms) are ignored; intentional winks (≥280ms) trigger clicks; both eyes closed (≥450ms) triggers pause or toggle.
+- **Delta-Time Physics**: Smooth fruit motion (`position += velocity * dt`) taking 2.0 to 3.5 seconds to cross the screen.
+- **Web Audio API Synthesizer**: Procedural sound effects for swipes, juice splashes, bomb explosions, combo fanfares, and button clicks.
 
 ---
 
-## Quick Start Guide
+## 🛠️ Tech Stack
+
+- **Backend**: Python 3, FastAPI, OpenCV, MediaPipe, PyAutoGUI, NumPy, WebSockets, Uvicorn
+- **Frontend**: HTML5 Canvas, CSS3 Glassmorphism, JavaScript ES6+, Web Audio API
+
+---
+
+## 🏁 Quick Start Guide
 
 ### 1. Install Dependencies
 
 ```bash
-# Install Server Dependencies
-cd server
-npm install
-
-# Install Client Dependencies
-cd ../client
-npm install
+pip install -r requirements.txt
 ```
 
-### 2. Start the Express Server & React Frontend
+### 2. Run the FastAPI Application Server
 
-In Terminal 1 (Server):
 ```bash
-cd server
-npm start
+python -m uvicorn app:app --host 0.0.0.0 --port 8000
 ```
-*Server will run on `http://localhost:5000` (Connecting to MongoDB or fallback in-memory store).*
 
-In Terminal 2 (Client):
-```bash
-cd client
-npm run dev
+### 3. Open in Browser
+
+Open your browser and navigate to:
+```text
+http://localhost:8000
 ```
-*Frontend will open on `http://localhost:3000`.*
 
 ---
 
-## How to Play
+## 🎮 Mode 1 — Gesture Fruit Game (`/game`)
 
-1. Allow webcam permissions when prompted.
-2. **AIM**: Point your index finger at the camera to move the crosshair.
-3. **SHOOT**: Wink or close one eye briefly to fire a laser shot.
-4. **GOAL**: Eliminate all **10 enemies** to clear the wave and post your score to the global MERN leaderboard!
-5. *(Fallback: You can also use Mouse to aim and Click / Spacebar to shoot if camera is unavailable).*
+- **Aim**: Point index finger at camera to move glowing cursor.
+- **Slice**: Fast hand swipe across fruits.
+- **Left Eye Wink (≥280ms)**: Left Click / Select buttons.
+- **Right Eye Wink (≥280ms)**: Special Action.
+- **Both Eyes Closed (≥450ms) or Fist (✊)**: Pause Game.
+- **Camera Preview**: Positioned in **BOTTOM-RIGHT CORNER**.
+
+---
+
+## 🖱️ Mode 2 — Real Computer Mouse Control (`/mouse`)
+
+- **Move OS Cursor**: Point index finger at camera to move laptop OS mouse.
+- **Real OS Left Click**: Close left eye (wink ≥280ms).
+- **Real OS Right Click**: Close right eye (wink ≥280ms).
+- **Pinch Finger**: Hold left mouse down for Drag & Drop.
+- **Both Eyes Closed**: Toggle Mouse Control ON/OFF.
+
+---
+
+## ⚙️ Configuration (`config.py`)
+
+All gesture thresholds and fruit velocity constants can be customized in `config.py`:
+- `MIN_SWIPE_DISTANCE = 0.07`
+- `MIN_SWIPE_SPEED = 0.95`
+- `EAR_THRESHOLD = 0.20`
+- `WINK_TRIGGER_MS = 280`
+- `MOUSE_SMOOTHING_FACTOR = 0.25`
+- `LEVEL_1_SPEED_MULT = 0.50`
