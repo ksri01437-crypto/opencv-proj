@@ -3,7 +3,7 @@ import VisionRecognizer from './components/VisionRecognizer';
 import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
 import Leaderboard from './components/Leaderboard';
-import { Play, RotateCcw, Hand, Eye, ShieldAlert, Sparkles, CheckCircle2, Bomb, Cpu } from 'lucide-react';
+import { Play, RotateCcw, Hand, Eye, ShieldAlert, Sparkles, CheckCircle2, Bomb, Cpu, Trophy } from 'lucide-react';
 
 export default function App() {
   const [gameState, setGameState] = useState('MENU'); // MENU, PLAYING, GAME_OVER, GAME_OVER_BOMB
@@ -85,10 +85,10 @@ export default function App() {
         onUsernameChange={setUsername}
       />
 
-      {/* Main Play Area */}
-      <main className="flex-1 p-6 flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full">
-        {/* Game Canvas Container */}
-        <div className="flex-1 flex flex-col items-center justify-center relative min-h-[520px]">
+      {/* Main Play Area - Clean & Wide Layout */}
+      <main className="flex-1 p-4 md:p-6 flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto w-full">
+        {/* Game Canvas Container with Floating Webcam PIP Overlay */}
+        <div className="flex-1 flex flex-col items-center justify-center relative min-h-[540px]">
           {/* Main 2D Game Canvas */}
           <GameCanvas
             aimPos={aimPos}
@@ -97,6 +97,15 @@ export default function App() {
             onGameComplete={handleGameComplete}
             onGameOverBomb={handleGameOverBomb}
             onScoreUpdate={setCurrentStats}
+          />
+
+          {/* Floating Small Top Window Webcam Video PIP */}
+          <VisionRecognizer
+            onAimUpdate={handleAimUpdate}
+            onShootTrigger={handleShootTrigger}
+            isGameActive={gameState === 'PLAYING'}
+            sensitivity={sensitivity}
+            isFloatingPIP={true}
           />
 
           {/* Interactive Start Menu Overlay */}
@@ -110,19 +119,19 @@ export default function App() {
                 OPENCV HAND GESTURE SLICER
               </h2>
               <p className="text-slate-300 max-w-lg text-sm mb-6">
-                <strong className="text-emerald-400 font-bold">100% Computer Vision Powered</strong> — Swipe your <strong className="text-cyan-400 font-bold">Index Finger</strong> in front of your webcam to slice flying fruits. Avoid <strong className="text-red-500 font-bold">DANGER BOMBS 💣</strong>! (No mouse control).
+                <strong className="text-emerald-400 font-bold">Webcam Computer Vision Powered</strong> — Swipe your <strong className="text-cyan-400 font-bold">Index Finger</strong> to slice flying fruits. Avoid <strong className="text-red-500 font-bold">DANGER BOMBS 💣</strong>! (No mouse control).
               </p>
 
               {/* 3 Step Controls Legend */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 w-full max-w-2xl text-xs font-mono">
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
                   <Hand className="text-emerald-400 mb-2" size={28} />
-                  <span className="font-bold text-emerald-300 text-sm">1. WEBCAM HAND SWIPE</span>
-                  <span className="text-slate-400 text-[11px] mt-1">Point & swipe index finger to slice fruits</span>
+                  <span className="font-bold text-emerald-300 text-sm">1. WEBCAM SWIPE</span>
+                  <span className="text-slate-400 text-[11px] mt-1">Swipe index finger to slice flying fruits</span>
                 </div>
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
                   <Eye className="text-cyan-400 mb-2" size={28} />
-                  <span className="font-bold text-cyan-300 text-sm">2. EYE WINK SHOCKWAVE</span>
+                  <span className="font-bold text-cyan-300 text-sm">2. EYE WINK BLAST</span>
                   <span className="text-slate-400 text-[11px] mt-1">Wink eye to release shockwave slice</span>
                 </div>
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
@@ -221,15 +230,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Sidebar: Vision Tracking PIP & MERN Leaderboard */}
-        <div className="w-full lg:w-80 flex flex-col gap-6">
-          <VisionRecognizer
-            onAimUpdate={handleAimUpdate}
-            onShootTrigger={handleShootTrigger}
-            isGameActive={gameState === 'PLAYING'}
-            sensitivity={sensitivity}
-          />
-
+        {/* Sidebar Leaderboard */}
+        <div className="w-full lg:w-80">
           <Leaderboard newScoreSubmitted={scoreSubmittedCount} />
         </div>
       </main>

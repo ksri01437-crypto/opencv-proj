@@ -5,7 +5,8 @@ export default function VisionRecognizer({
   onAimUpdate,
   onShootTrigger,
   isGameActive,
-  sensitivity = 0.28
+  sensitivity = 0.28,
+  isFloatingPIP = true
 }) {
   const videoRef = useRef(null);
   const pipCanvasRef = useRef(null);
@@ -204,8 +205,8 @@ export default function VisionRecognizer({
                 await faceMesh.send({ image: videoRef.current });
               }
             },
-            width: 640,
-            height: 480
+            width: 320,
+            height: 240
           });
 
           await camera.start();
@@ -216,7 +217,7 @@ export default function VisionRecognizer({
         console.error('Camera/Vision Error:', err);
         setTrackingStatus((prev) => ({
           ...prev,
-          error: 'Webcam offline/blocked. Enable camera access for OpenCV Gesture Control!'
+          error: 'Webcam offline/blocked.'
         }));
       }
     }
@@ -231,61 +232,44 @@ export default function VisionRecognizer({
     };
   }, [sensitivity, onShootTrigger]);
 
-  const handleTestShot = () => {
-    onShootTrigger();
-    setTrackingStatus((prev) => ({ ...prev, winkDetected: true }));
-    setTimeout(() => setTrackingStatus((prev) => ({ ...prev, winkDetected: false })), 200);
-  };
-
   return (
-    <div className="vision-container">
+    <div className={isFloatingPIP ? "floating-pip-container absolute top-4 right-4 z-40 w-44 md:w-56 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-500/60 bg-slate-950/90 backdrop-blur" : "vision-container"}>
       {/* Video Feed Preview PIP */}
-      <div className="video-pip-box">
-        <video ref={videoRef} className="video-feed" playsInline muted></video>
+      <div className="relative w-full aspect-video bg-slate-900 overflow-hidden">
+        <video ref={videoRef} className="w-full h-full object-cover transform -scale-x-100" playsInline muted></video>
         <canvas ref={pipCanvasRef} width={320} height={240} className="absolute inset-0 w-full h-full pointer-events-none transform -scale-x-100" />
 
         {!trackingStatus.cameraReady && !trackingStatus.error && (
           <div className="video-overlay-msg">
-            <RefreshCw className="animate-spin text-cyan-400 mb-2" size={24} />
-            <span className="font-orbitron text-xs">INITIALIZING OPENCV SKELETON...</span>
+            <RefreshCw className="animate-spin text-emerald-400 mb-1" size={18} />
+            <span className="font-orbitron text-[10px]">STARTING OPENCV...</span>
           </div>
         )}
 
         {trackingStatus.error && (
-          <div className="video-overlay-msg error text-xs">
-            <VideoOff className="text-red-400 mb-1" size={20} />
+          <div className="video-overlay-msg error text-[10px]">
+            <VideoOff className="text-red-400 mb-1" size={16} />
             <span>{trackingStatus.error}</span>
           </div>
         )}
 
-        <div className="pip-header">
-          <Camera size={14} className="text-cyan-400 mr-1" />
-          <span>OpenCV Hand Skeleton PIP</span>
+        <div className="pip-header bg-slate-950/80 backdrop-blur px-2 py-0.5 rounded text-[10px] text-emerald-400 font-orbitron flex items-center gap-1 border border-emerald-500/30">
+          <Camera size={10} className="text-emerald-400" />
+          <span>OPENCV SKELETON</span>
         </div>
       </div>
 
       {/* Live Vision Status Dashboard */}
-      <div className="tracking-status-bar flex flex-col gap-2">
-        <div className="flex gap-2">
-          <div className={`status-badge ${trackingStatus.handDetected ? 'active' : ''}`}>
-            <Hand size={14} />
-            <span>{trackingStatus.handDetected ? 'OPENCV: HAND LOCK' : 'POINT INDEX FINGER'}</span>
-          </div>
-
-          <div className={`status-badge ${trackingStatus.winkDetected ? 'shoot-active' : ''}`}>
-            <Eye size={14} />
-            <span>{trackingStatus.winkDetected ? '💥 EYE SHOT!' : `WINK TO SHOOT (EAR ${trackingStatus.leftEyeEAR})`}</span>
-          </div>
+      <div className="p-2 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono">
+        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${trackingStatus.handDetected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-900 text-slate-500'}`}>
+          <Hand size={12} />
+          <span>{trackingStatus.handDetected ? 'HAND LOCK' : 'SEARCH HAND'}</span>
         </div>
 
-        {/* Manual Test Trigger Button */}
-        <button
-          onClick={handleTestShot}
-          className="w-full py-2 bg-pink-600/30 hover:bg-pink-600/50 border border-pink-500/50 rounded-lg text-pink-300 font-orbitron text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow-lg shadow-pink-500/10"
-        >
-          <Zap size={14} className="text-pink-400" />
-          TEST EYE WINK SHOT (OR SPACEBAR)
-        </button>
+        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${trackingStatus.winkDetected ? 'bg-pink-500/30 text-pink-400 border border-pink-500/50 animate-pulse' : 'bg-slate-900 text-slate-400'}`}>
+          <Eye size={12} />
+          <span>{trackingStatus.winkDetected ? '💥 WINK!' : `EAR ${trackingStatus.leftEyeEAR}`}</span>
+        </div>
       </div>
     </div>
   );

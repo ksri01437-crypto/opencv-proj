@@ -83,6 +83,8 @@ export default function GameCanvas({
         vy,
         rotation: Math.random() * Math.PI * 2,
         vRot: (Math.random() - 0.5) * 0.12,
+        spawnTime: Date.now(),
+        ttlMax: 4.5, // 4.5 seconds time to live on screen
         alive: true
       });
     }
@@ -328,13 +330,15 @@ export default function GameCanvas({
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // OpenCV Header Telemetry Overlay
+      const now = Date.now();
+      const matchSeconds = gameState === 'PLAYING' ? Math.floor((now - statsRef.current.startTime) / 1000) : 0;
+
+      // OpenCV Header Telemetry Overlay with Match Timer
       ctx.fillStyle = '#00FF00';
       ctx.font = '900 10px Orbitron, monospace';
-      ctx.fillText('[OPENCV ENGINE v4.10.0 | MODE: WEBCAM HAND SKELETON GESTURE | FPS: 60]', 16, 24);
+      ctx.fillText(`[OPENCV ENGINE v4.10.0 | MODE: WEBCAM HAND SKELETON GESTURE | MATCH TIME: ${matchSeconds}s]`, 16, 24);
 
       // Continuous Wave Spawner
-      const now = Date.now();
       if (gameState === 'PLAYING' && now - lastSpawnTimeRef.current > 2200) {
         lastSpawnTimeRef.current = now;
         spawnWave(canvas.width, canvas.height);
@@ -356,7 +360,7 @@ export default function GameCanvas({
       }
       prevAimPosRef.current = { x: aimPos.x, y: aimPos.y };
 
-      // 2. Render & Physics Update for Flying Fruits / Bombs with OpenCV Green Bounding Boxes
+      // 2. Render & Physics Update for Flying Fruits / Bombs with OpenCV Green Bounding Boxes & Time-to-Live Rings
       itemsRef.current.forEach((item, idx) => {
         if (item.alive) {
           // Arc Physics Movement (vy + gravity)
@@ -364,6 +368,10 @@ export default function GameCanvas({
           item.y += item.vy;
           item.vy += 0.32; // Gravity pulling item back down
           item.rotation += item.vRot;
+
+          // Fruit Time-To-Live remaining calculation
+          const ageSeconds = (now - item.spawnTime) / 1000;
+          const ttlRemaining = Math.max(0, (item.ttlMax - ageSeconds)).toFixed(1);
 
           ctx.save();
 
@@ -398,10 +406,10 @@ export default function GameCanvas({
             ctx.fillText(item.emoji, 0, 0);
             ctx.restore();
 
-            // OpenCV Tag Header
+            // OpenCV Tag Header with Timer
             ctx.fillStyle = '#FF0055';
             ctx.font = '900 9px Orbitron, monospace';
-            ctx.fillText(`[CV WARN: BOMB 💣 | POS: (${Math.round(item.x)}, ${Math.round(item.y)})]`, bx, by - 6);
+            ctx.fillText(`[CV WARN: BOMB 💣 | TTL: ${ttlRemaining}s]`, bx, by - 6);
           } else {
             // Draw OpenCV Green Bounding Box (cv2.rectangle style)
             ctx.strokeStyle = '#00FF00';
@@ -418,6 +426,14 @@ export default function GameCanvas({
             ctx.moveTo(bx + bw - tick, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - tick);
             ctx.stroke();
 
+            // Fruit Time-To-Live Progress Ring
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const progress = (item.ttlMax - ageSeconds) / item.ttlMax;
+            ctx.arc(item.x, item.y, item.radius + 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, progress));
+            ctx.stroke();
+
             // Fruit Emoji Center
             ctx.save();
             ctx.translate(item.x, item.y);
@@ -428,10 +444,10 @@ export default function GameCanvas({
             ctx.fillText(item.emoji, 0, 0);
             ctx.restore();
 
-            // OpenCV Data Header Tag above Fruit
+            // OpenCV Data Header Tag above Fruit with TTL Timer
             ctx.fillStyle = '#00FF00';
             ctx.font = '900 9px Orbitron, monospace';
-            ctx.fillText(`[CV DETECT: ${item.name.toUpperCase()} | CONF: 98.4%]`, bx, by - 6);
+            ctx.fillText(`[CV DETECT: ${item.name.toUpperCase()} | TTL: ⏱️${ttlRemaining}s]`, bx, by - 6);
           }
 
           ctx.restore();
