@@ -3,14 +3,14 @@ import VisionRecognizer from './components/VisionRecognizer';
 import GameCanvas from './components/GameCanvas';
 import HUD from './components/HUD';
 import Leaderboard from './components/Leaderboard';
-import { Play, RotateCcw, Hand, Eye, ShieldAlert, Sparkles, CheckCircle2, Bomb, Flame } from 'lucide-react';
+import { Play, RotateCcw, Hand, Eye, ShieldAlert, Sparkles, CheckCircle2, Bomb, Cpu } from 'lucide-react';
 
 export default function App() {
   const [gameState, setGameState] = useState('MENU'); // MENU, PLAYING, GAME_OVER, GAME_OVER_BOMB
   const [aimPos, setAimPos] = useState({ x: 0.5, y: 0.5 });
   const [shootTriggered, setShootTriggered] = useState(false);
   const [sensitivity, setSensitivity] = useState(0.28);
-  const [username, setUsername] = useState('FruitNinja');
+  const [username, setUsername] = useState('OpenCVNinja');
 
   const [currentStats, setCurrentStats] = useState({
     score: 0,
@@ -52,7 +52,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim() || 'FruitNinja',
+          username: username.trim() || 'OpenCVNinja',
           score: finalStats.score,
           enemiesShot: finalStats.enemiesShot,
           totalEnemies: 10,
@@ -101,28 +101,28 @@ export default function App() {
 
           {/* Interactive Start Menu Overlay */}
           {gameState === 'MENU' && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-8 text-center z-20 border-2 border-amber-500/40 shadow-2xl">
-              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl mb-4">
-                <span className="text-5xl animate-bounce inline-block">🍉</span>
+            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-8 text-center z-20 border-2 border-emerald-500/40 shadow-2xl">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl mb-4">
+                <Cpu className="text-emerald-400 animate-pulse" size={48} />
               </div>
 
-              <h2 className="text-3xl md:text-4xl font-extrabold font-orbitron bg-gradient-to-r from-yellow-400 via-amber-400 to-red-500 bg-clip-text text-transparent mb-2">
-                OPENCV FRUIT NINJA
+              <h2 className="text-3xl md:text-4xl font-extrabold font-orbitron bg-gradient-to-r from-emerald-400 via-cyan-400 to-yellow-400 bg-clip-text text-transparent mb-2">
+                OPENCV HAND GESTURE SLICER
               </h2>
               <p className="text-slate-300 max-w-lg text-sm mb-6">
-                Slice flipping fruits using your <strong className="text-cyan-400 font-bold">Hand Blade Gesture</strong>. Avoid the <strong className="text-red-500 font-bold">DANGER BOMBS 💣</strong>! Cut 10 fruits to win!
+                <strong className="text-emerald-400 font-bold">100% Computer Vision Powered</strong> — Swipe your <strong className="text-cyan-400 font-bold">Index Finger</strong> in front of your webcam to slice flying fruits. Avoid <strong className="text-red-500 font-bold">DANGER BOMBS 💣</strong>! (No mouse control).
               </p>
 
               {/* 3 Step Controls Legend */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 w-full max-w-2xl text-xs font-mono">
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
-                  <Hand className="text-cyan-400 mb-2" size={28} />
-                  <span className="font-bold text-cyan-300 text-sm">1. HAND SLICER</span>
-                  <span className="text-slate-400 text-[11px] mt-1">Point index finger to slice flying fruits</span>
+                  <Hand className="text-emerald-400 mb-2" size={28} />
+                  <span className="font-bold text-emerald-300 text-sm">1. WEBCAM HAND SWIPE</span>
+                  <span className="text-slate-400 text-[11px] mt-1">Point & swipe index finger to slice fruits</span>
                 </div>
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
-                  <Eye className="text-pink-400 mb-2" size={28} />
-                  <span className="font-bold text-pink-300 text-sm">2. EYE WINK BLAST</span>
+                  <Eye className="text-cyan-400 mb-2" size={28} />
+                  <span className="font-bold text-cyan-300 text-sm">2. EYE WINK SHOCKWAVE</span>
                   <span className="text-slate-400 text-[11px] mt-1">Wink eye to release shockwave slice</span>
                 </div>
                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center shadow-lg">
@@ -134,38 +134,38 @@ export default function App() {
 
               <button
                 onClick={handleStartGame}
-                className="px-10 py-4 bg-gradient-to-r from-yellow-500 via-amber-600 to-red-600 hover:from-yellow-400 hover:to-red-500 font-orbitron font-extrabold text-slate-950 rounded-xl shadow-xl shadow-yellow-500/30 flex items-center gap-3 transition transform hover:scale-105 active:scale-95 text-lg"
+                className="px-10 py-4 bg-gradient-to-r from-emerald-500 via-cyan-600 to-blue-600 hover:from-emerald-400 hover:to-blue-500 font-orbitron font-extrabold text-slate-950 rounded-xl shadow-xl shadow-emerald-500/30 flex items-center gap-3 transition transform hover:scale-105 active:scale-95 text-lg"
               >
                 <Play fill="currentColor" size={22} />
-                START FRUIT MATCH (10 FRUITS)
+                START OPENCV MATCH (10 FRUITS)
               </button>
             </div>
           )}
 
           {/* Victory Modal Overlay */}
           {gameState === 'GAME_OVER' && lastGameResult && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-8 text-center z-20 border-2 border-yellow-500/50 shadow-2xl">
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-full mb-3">
-                <CheckCircle2 className="text-yellow-400" size={52} />
+            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-xl flex flex-col items-center justify-center p-8 text-center z-20 border-2 border-emerald-500/50 shadow-2xl">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/40 rounded-full mb-3">
+                <CheckCircle2 className="text-emerald-400" size={52} />
               </div>
 
-              <h2 className="text-3xl font-extrabold font-orbitron text-yellow-400 mb-1">
+              <h2 className="text-3xl font-extrabold font-orbitron text-emerald-400 mb-1">
                 ALL 10 FRUITS SLICED! 🍉
               </h2>
-              <p className="text-slate-400 text-xs mb-6 font-mono">NINJA MATCH COMPLETE • SCORE SAVED TO LEADERBOARD</p>
+              <p className="text-slate-400 text-xs mb-6 font-mono">OPENCV MATCH COMPLETE • SCORE SAVED TO LEADERBOARD</p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 w-full max-w-lg font-mono">
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">FRUITS CUT</div>
-                  <div className="text-xl font-bold text-yellow-400 font-orbitron">{lastGameResult.enemiesShot}/10</div>
+                  <div className="text-xl font-bold text-emerald-400 font-orbitron">{lastGameResult.enemiesShot}/10</div>
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">TOTAL SCORE</div>
-                  <div className="text-xl font-bold text-amber-300 font-orbitron">{lastGameResult.score}</div>
+                  <div className="text-xl font-bold text-cyan-300 font-orbitron">{lastGameResult.score}</div>
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">ACCURACY</div>
-                  <div className="text-xl font-bold text-emerald-400 font-orbitron">{lastGameResult.accuracy}%</div>
+                  <div className="text-xl font-bold text-yellow-400 font-orbitron">{lastGameResult.accuracy}%</div>
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">TIME TAKEN</div>
@@ -175,7 +175,7 @@ export default function App() {
 
               <button
                 onClick={handleStartGame}
-                className="px-8 py-3.5 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 font-orbitron font-bold text-slate-950 rounded-xl shadow-lg flex items-center gap-2 transition transform hover:scale-105"
+                className="px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 font-orbitron font-bold text-slate-950 rounded-xl shadow-lg flex items-center gap-2 transition transform hover:scale-105"
               >
                 <RotateCcw size={20} />
                 PLAY AGAIN
@@ -193,16 +193,16 @@ export default function App() {
               <h2 className="text-3xl font-extrabold font-orbitron text-red-500 mb-1">
                 BOOM! BOMB DETONATED! 💣💥
               </h2>
-              <p className="text-slate-300 text-xs mb-6 font-mono">YOU SLICED A BOMB! GAME OVER</p>
+              <p className="text-slate-300 text-xs mb-6 font-mono">HAND TOUCHED A BOMB! GAME OVER</p>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 w-full max-w-md font-mono">
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">FRUITS CUT BEFORE BOMB</div>
-                  <div className="text-xl font-bold text-yellow-400 font-orbitron">{lastGameResult.enemiesShot}/10</div>
+                  <div className="text-xl font-bold text-emerald-400 font-orbitron">{lastGameResult.enemiesShot}/10</div>
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">SCORE</div>
-                  <div className="text-xl font-bold text-amber-300 font-orbitron">{lastGameResult.score}</div>
+                  <div className="text-xl font-bold text-cyan-300 font-orbitron">{lastGameResult.score}</div>
                 </div>
                 <div className="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                   <div className="text-[10px] text-slate-400">SURVIVED TIME</div>

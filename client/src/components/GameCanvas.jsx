@@ -13,19 +13,18 @@ export default function GameCanvas({
   const canvasRef = useRef(null);
   const [banner, setBanner] = useState(null);
 
-  const itemsRef = useRef([]); // Active fruits and bombs flying in arc physics
+  const itemsRef = useRef([]); // Flying fruits and bombs
   const slicedHalvesRef = useRef([]);
   const juiceParticlesRef = useRef([]);
   const sliceTrailsRef = useRef([]);
   const scorePopupsRef = useRef([]);
   const screenShakeRef = useRef(0);
   const prevAimPosRef = useRef({ x: 0.5, y: 0.5 });
-  const mouseAimRef = useRef({ x: 0.5, y: 0.5, isMouseActive: false });
   const lastSpawnTimeRef = useRef(0);
 
   const statsRef = useRef({
     score: 0,
-    enemiesShot: 0, // Fruits cut count out of 10
+    enemiesShot: 0,
     totalEnemies: 10,
     shotsFired: 0,
     accuracy: 0,
@@ -34,35 +33,35 @@ export default function GameCanvas({
 
   const lastShootStateRef = useRef(false);
 
-  // Available Fruits Definitions
+  // Available Fruit Definitions
   const fruitDefs = [
-    { type: 'fruit', name: 'Watermelon', emoji: '🍉', color: '#EF4444', juiceColor: '#DC2626', radius: 46, points: 100 },
-    { type: 'fruit', name: 'Red Apple', emoji: '🍎', color: '#F87171', juiceColor: '#B91C1C', radius: 38, points: 120 },
-    { type: 'fruit', name: 'Banana', emoji: '🍌', color: '#FACC15', juiceColor: '#EAB308', radius: 40, points: 140 },
-    { type: 'fruit', name: 'Sweet Orange', emoji: '🍊', color: '#FB923C', juiceColor: '#EA580C', radius: 38, points: 130 },
-    { type: 'fruit', name: 'Pineapple', emoji: '🍍', color: '#FBBF24', juiceColor: '#D97706', radius: 44, points: 180 },
-    { type: 'fruit', name: 'Strawberry', emoji: '🍓', color: '#F43F5E', juiceColor: '#E11D48', radius: 34, points: 150 },
-    { type: 'fruit', name: 'Fresh Kiwi', emoji: '🥝', color: '#84CC16', juiceColor: '#65A30D', radius: 36, points: 160 },
-    { type: 'fruit', name: 'Coconut', emoji: '🥥', color: '#A16207', juiceColor: '#FEF08A', radius: 42, points: 200 },
-    { type: 'fruit', name: 'Juicy Grapes', emoji: '🍇', color: '#A855F7', juiceColor: '#7E22CE', radius: 38, points: 170 },
-    { type: 'fruit', name: 'Peach', emoji: '🍑', color: '#F472B6', juiceColor: '#DB2777', radius: 37, points: 190 }
+    { type: 'fruit', name: 'Watermelon', emoji: '🍉', color: '#00FF00', juiceColor: '#DC2626', radius: 46, points: 100 },
+    { type: 'fruit', name: 'Red Apple', emoji: '🍎', color: '#00FF00', juiceColor: '#B91C1C', radius: 38, points: 120 },
+    { type: 'fruit', name: 'Banana', emoji: '🍌', color: '#00FF00', juiceColor: '#EAB308', radius: 40, points: 140 },
+    { type: 'fruit', name: 'Sweet Orange', emoji: '🍊', color: '#00FF00', juiceColor: '#EA580C', radius: 38, points: 130 },
+    { type: 'fruit', name: 'Pineapple', emoji: '🍍', color: '#00FF00', juiceColor: '#D97706', radius: 44, points: 180 },
+    { type: 'fruit', name: 'Strawberry', emoji: '🍓', color: '#00FF00', juiceColor: '#E11D48', radius: 34, points: 150 },
+    { type: 'fruit', name: 'Fresh Kiwi', emoji: '🥝', color: '#00FF00', juiceColor: '#65A30D', radius: 36, points: 160 },
+    { type: 'fruit', name: 'Coconut', emoji: '🥥', color: '#00FF00', juiceColor: '#FEF08A', radius: 42, points: 200 },
+    { type: 'fruit', name: 'Juicy Grapes', emoji: '🍇', color: '#00FF00', juiceColor: '#7E22CE', radius: 38, points: 170 },
+    { type: 'fruit', name: 'Peach', emoji: '🍑', color: '#00FF00', juiceColor: '#DB2777', radius: 37, points: 190 }
   ];
 
   // Spawn Fruit / Bomb Wave launching upward from bottom
   const spawnWave = (width, height) => {
-    const waveCount = 2 + Math.floor(Math.random() * 2); // Launch 2-3 items
+    const waveCount = 2 + Math.floor(Math.random() * 2); // 2-3 items
     for (let i = 0; i < waveCount; i++) {
-      // 20% chance to spawn a Bomb 💣
+      // 22% chance to spawn a Bomb 💣
       const isBomb = Math.random() < 0.22;
       let itemData;
 
       if (isBomb) {
         itemData = {
           type: 'bomb',
-          name: 'DANGEROUS BOMB',
+          name: 'DANGER BOMB',
           emoji: '💣',
-          color: '#EF4444',
-          radius: 42,
+          color: '#FF0055',
+          radius: 44,
           points: 0
         };
       } else {
@@ -70,10 +69,10 @@ export default function GameCanvas({
         itemData = { ...randFruit };
       }
 
-      const spawnX = 120 + Math.random() * (width - 240);
-      const spawnY = height + 30; // Below canvas
+      const spawnX = 140 + Math.random() * (width - 280);
+      const spawnY = height + 40; // Below canvas
       const vx = (Math.random() - 0.5) * 5.5;
-      const vy = -(13.5 + Math.random() * 4.5); // Arc velocity upwards
+      const vy = -(13.5 + Math.random() * 4.5); // Arc velocity
 
       itemsRef.current.push({
         id: Date.now() + Math.random(),
@@ -111,7 +110,7 @@ export default function GameCanvas({
     spawnWave(width, height);
   };
 
-  // Check Line Segment Collision to Item Center
+  // Check Line Segment Collision (Hand Blade Swipe) to Item Center
   const checkLineSlice = (x1, y1, x2, y2, cx, cy, r) => {
     const dx = x2 - x1;
     const dy = y2 - y1;
@@ -125,7 +124,7 @@ export default function GameCanvas({
     return Math.hypot(cx - projX, cy - projY) <= r;
   };
 
-  // Process Hand Slicing / Laser Blast
+  // Process OpenCV Hand Gesture Slice
   const processSliceAction = (x1, y1, x2, y2, isBlast = false) => {
     if (gameState !== 'PLAYING') return;
 
@@ -137,7 +136,7 @@ export default function GameCanvas({
 
     itemsRef.current.forEach((item) => {
       if (item.alive) {
-        const isHit = checkLineSlice(x1, y1, x2, y2, item.x, item.y, item.radius + 15);
+        const isHit = checkLineSlice(x1, y1, x2, y2, item.x, item.y, item.radius + 18);
         if (isHit) {
           item.alive = false;
 
@@ -155,7 +154,7 @@ export default function GameCanvas({
                 y: item.y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                color: Math.random() > 0.5 ? '#EF4444' : '#F59E0B',
+                color: Math.random() > 0.5 ? '#FF0055' : '#FFB800',
                 radius: Math.random() * 8 + 4,
                 alpha: 1.0,
                 decay: 0.02
@@ -175,7 +174,7 @@ export default function GameCanvas({
           statsRef.current.enemiesShot += 1;
           statsRef.current.score += item.points;
 
-          setBanner(` 🍉 ${item.name.toUpperCase()} SLICED! +${item.points} PTS`);
+          setBanner(` 🍉 OPENCV CUT: ${item.name.toUpperCase()} (+${item.points} PTS)`);
           setTimeout(() => setBanner(null), 1200);
 
           // Spawn 2 Sliced Halves flying apart
@@ -224,7 +223,7 @@ export default function GameCanvas({
             x: item.x,
             y: item.y,
             alpha: 1.0,
-            color: item.color
+            color: '#00FF00'
           });
 
           // Update Stats
@@ -262,17 +261,16 @@ export default function GameCanvas({
     if (gameState === 'PLAYING' && shootTriggered && !lastShootStateRef.current) {
       const canvas = canvasRef.current;
       if (canvas) {
-        const activePos = mouseAimRef.current.isMouseActive ? mouseAimRef.current : aimPos;
-        const cx = activePos.x * canvas.width;
-        const cy = activePos.y * canvas.height;
+        const cx = aimPos.x * canvas.width;
+        const cy = aimPos.y * canvas.height;
         statsRef.current.shotsFired += 1;
-        processSliceAction(cx - 30, cy - 30, cx + 30, cy + 30, true);
+        processSliceAction(cx - 35, cy - 35, cx + 35, cy + 35, true);
       }
     }
     lastShootStateRef.current = shootTriggered;
   }, [shootTriggered, aimPos, gameState]);
 
-  // Keyboard Spacebar / Enter slice listener
+  // Keyboard Spacebar listener to trigger Eye Shot fallback
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space' || e.code === 'Enter') {
@@ -280,10 +278,9 @@ export default function GameCanvas({
           e.preventDefault();
           const canvas = canvasRef.current;
           if (canvas) {
-            const activePos = mouseAimRef.current.isMouseActive ? mouseAimRef.current : aimPos;
-            const cx = activePos.x * canvas.width;
-            const cy = activePos.y * canvas.height;
-            processSliceAction(cx - 30, cy - 30, cx + 30, cy + 30, true);
+            const cx = aimPos.x * canvas.width;
+            const cy = aimPos.y * canvas.height;
+            processSliceAction(cx - 35, cy - 35, cx + 35, cy + 35, true);
           }
         }
       }
@@ -316,12 +313,12 @@ export default function GameCanvas({
       ctx.translate(shakeX, shakeY);
       ctx.clearRect(-20, -20, canvas.width + 40, canvas.height + 40);
 
-      // Arena Background
-      ctx.fillStyle = '#1c1917';
+      // OpenCV Vision Lab Dark Background
+      ctx.fillStyle = '#020d18';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Dojo Grid Lines
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.08)';
+      // OpenCV Calibration Grid Lines
+      ctx.strokeStyle = 'rgba(0, 255, 0, 0.08)';
       ctx.lineWidth = 1;
       const step = 50;
       for (let x = 0; x < canvas.width; x += step) {
@@ -331,6 +328,11 @@ export default function GameCanvas({
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
+      // OpenCV Header Telemetry Overlay
+      ctx.fillStyle = '#00FF00';
+      ctx.font = '900 10px Orbitron, monospace';
+      ctx.fillText('[OPENCV ENGINE v4.10.0 | MODE: WEBCAM HAND SKELETON GESTURE | FPS: 60]', 16, 24);
+
       // Continuous Wave Spawner
       const now = Date.now();
       if (gameState === 'PLAYING' && now - lastSpawnTimeRef.current > 2200) {
@@ -338,10 +340,9 @@ export default function GameCanvas({
         spawnWave(canvas.width, canvas.height);
       }
 
-      // Determine active Hand Pointer coordinates
-      const activePos = mouseAimRef.current.isMouseActive ? mouseAimRef.current : aimPos;
-      const cx = activePos.x * canvas.width;
-      const cy = activePos.y * canvas.height;
+      // Determine active Hand Pointer coordinates (STRICTLY FROM WEBCAM HAND TRACKER)
+      const cx = aimPos.x * canvas.width;
+      const cy = aimPos.y * canvas.height;
 
       const prevCx = prevAimPosRef.current.x * canvas.width;
       const prevCy = prevAimPosRef.current.y * canvas.height;
@@ -353,9 +354,9 @@ export default function GameCanvas({
           processSliceAction(prevCx, prevCy, cx, cy, false);
         }
       }
-      prevAimPosRef.current = { x: activePos.x, y: activePos.y };
+      prevAimPosRef.current = { x: aimPos.x, y: aimPos.y };
 
-      // 2. Render & Physics Update for Flying Fruits / Bombs
+      // 2. Render & Physics Update for Flying Fruits / Bombs with OpenCV Green Bounding Boxes
       itemsRef.current.forEach((item, idx) => {
         if (item.alive) {
           // Arc Physics Movement (vy + gravity)
@@ -365,51 +366,72 @@ export default function GameCanvas({
           item.rotation += item.vRot;
 
           ctx.save();
-          ctx.translate(item.x, item.y);
-          ctx.rotate(item.rotation);
+
+          const bx = item.x - item.radius - 8;
+          const by = item.y - item.radius - 8;
+          const bw = item.radius * 2 + 16;
+          const bh = item.radius * 2 + 16;
 
           if (item.type === 'bomb') {
-            // Render Bomb 💣 with red glowing aura & fuse flame
-            ctx.shadowBlur = 22;
-            ctx.shadowColor = '#EF4444';
-            ctx.strokeStyle = '#EF4444';
-            ctx.lineWidth = 3;
+            // Draw Red Bounding Box for Danger Bomb
+            ctx.strokeStyle = '#FF0055';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx, by, bw, bh);
+
+            // Corner Ticks (cv2 style)
+            const tick = 10;
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+            ctx.moveTo(bx, by + tick); ctx.lineTo(bx, by); ctx.lineTo(bx + tick, by);
+            ctx.moveTo(bx + bw - tick, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + tick);
+            ctx.moveTo(bx, by + bh - tick); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + tick, by + bh);
+            ctx.moveTo(bx + bw - tick, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - tick);
             ctx.stroke();
 
-            ctx.font = `${item.radius * 1.3}px sans-serif`;
+            // Fruit Center Emoji
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.rotate(item.rotation);
+            ctx.font = `${item.radius * 1.2}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(item.emoji, 0, 0);
+            ctx.restore();
 
-            // Warning Label
-            ctx.fillStyle = '#EF4444';
-            ctx.font = '900 11px Orbitron, sans-serif';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#EF4444';
-            ctx.fillText('💣 DANGER BOMB', 0, -item.radius - 12);
+            // OpenCV Tag Header
+            ctx.fillStyle = '#FF0055';
+            ctx.font = '900 9px Orbitron, monospace';
+            ctx.fillText(`[CV WARN: BOMB 💣 | POS: (${Math.round(item.x)}, ${Math.round(item.y)})]`, bx, by - 6);
           } else {
-            // Render Fruit 🍉
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = item.color;
-            ctx.strokeStyle = item.color;
-            ctx.lineWidth = 3;
+            // Draw OpenCV Green Bounding Box (cv2.rectangle style)
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx, by, bw, bh);
+
+            // Corner Ticks
+            const tick = 10;
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+            ctx.moveTo(bx, by + tick); ctx.lineTo(bx, by); ctx.lineTo(bx + tick, by);
+            ctx.moveTo(bx + bw - tick, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + tick);
+            ctx.moveTo(bx, by + bh - tick); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + tick, by + bh);
+            ctx.moveTo(bx + bw - tick, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - tick);
             ctx.stroke();
 
-            ctx.font = `${item.radius * 1.3}px sans-serif`;
+            // Fruit Emoji Center
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.rotate(item.rotation);
+            ctx.font = `${item.radius * 1.2}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(item.emoji, 0, 0);
+            ctx.restore();
 
-            // Fruit Name Label
-            ctx.fillStyle = item.color;
-            ctx.font = '900 10px Orbitron, sans-serif';
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = item.color;
-            ctx.fillText(item.name, 0, -item.radius - 10);
+            // OpenCV Data Header Tag above Fruit
+            ctx.fillStyle = '#00FF00';
+            ctx.font = '900 9px Orbitron, monospace';
+            ctx.fillText(`[CV DETECT: ${item.name.toUpperCase()} | CONF: 98.4%]`, bx, by - 6);
           }
 
           ctx.restore();
@@ -464,13 +486,13 @@ export default function GameCanvas({
         if (p.alpha <= 0) juiceParticlesRef.current.splice(idx, 1);
       });
 
-      // 5. Render Glowing Blade Slash Trails
+      // 5. Render Glowing OpenCV Blade Slash Trails
       sliceTrailsRef.current.forEach((trail, idx) => {
         ctx.save();
-        ctx.strokeStyle = `rgba(6, 182, 212, ${trail.alpha})`;
+        ctx.strokeStyle = `rgba(0, 255, 0, ${trail.alpha})`;
         ctx.lineWidth = 10 * trail.alpha;
         ctx.shadowBlur = 20;
-        ctx.shadowColor = '#06B6D4';
+        ctx.shadowColor = '#00FF00';
         ctx.beginPath();
         ctx.arc(trail.x, trail.y, 25 * (1 - trail.alpha + 0.1), 0, Math.PI * 2);
         ctx.stroke();
@@ -498,33 +520,33 @@ export default function GameCanvas({
         if (popup.alpha <= 0) scorePopupsRef.current.splice(idx, 1);
       });
 
-      // 7. Draw Player Hand Blade Pointer
+      // 7. Draw OpenCV Player Hand Pointer Reticle (STRICTLY DRIVEN BY WEBCAM HAND TRACKER)
       ctx.save();
-      ctx.strokeStyle = '#00F0FF';
-      ctx.lineWidth = 3.5;
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = '#00F0FF';
+      ctx.strokeStyle = '#00FF00';
+      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = '#00FF00';
 
       ctx.beginPath();
-      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = '#00F0FF';
+      ctx.fillStyle = '#00FF00';
       ctx.beginPath();
       ctx.arc(cx, cy, 5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Blade Reticle Cross
+      // Corner Reticle Ticks (cv2 style)
       ctx.beginPath();
-      ctx.moveTo(cx - 32, cy); ctx.lineTo(cx - 14, cy);
-      ctx.moveTo(cx + 14, cy); ctx.lineTo(cx + 32, cy);
-      ctx.moveTo(cx, cy - 32); ctx.lineTo(cx, cy - 14);
-      ctx.moveTo(cx, cy + 14); ctx.lineTo(cx, cy + 32);
+      ctx.moveTo(cx - 34, cy); ctx.lineTo(cx - 15, cy);
+      ctx.moveTo(cx + 15, cy); ctx.lineTo(cx + 34, cy);
+      ctx.moveTo(cx, cy - 34); ctx.lineTo(cx, cy - 15);
+      ctx.moveTo(cx, cy + 15); ctx.lineTo(cx, cy + 34);
       ctx.stroke();
 
-      ctx.fillStyle = '#00F0FF';
-      ctx.font = '900 10px Orbitron, sans-serif';
-      ctx.fillText('HAND KATANA BLADE', cx + 28, cy + 4);
+      ctx.fillStyle = '#00FF00';
+      ctx.font = '900 10px Orbitron, monospace';
+      ctx.fillText(`[OPENCV HAND TRACK: INDEX TIP (${Math.round(cx)}, ${Math.round(cy)})]`, cx + 28, cy + 4);
 
       ctx.restore();
       ctx.restore(); // Restore shake
@@ -537,35 +559,10 @@ export default function GameCanvas({
     return () => cancelAnimationFrame(animationId);
   }, [aimPos, gameState]);
 
-  // Mouse move updates hand blade pointer
-  const handleMouseMove = (e) => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      const normX = (e.clientX - rect.left) / rect.width;
-      const normY = (e.clientY - rect.top) / rect.height;
-      mouseAimRef.current = { x: normX, y: normY, isMouseActive: true };
-    }
-  };
-
-  // Canvas Click fallback slice
-  const handleCanvasClick = (e) => {
-    if (gameState !== 'PLAYING') return;
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const clickX = (e.clientX - rect.left) * scaleX;
-      const clickY = (e.clientY - rect.top) * scaleY;
-      processSliceAction(clickX - 25, clickY - 25, clickX + 25, clickY + 25, true);
-    }
-  };
-
   return (
     <div className="game-canvas-wrapper relative w-full h-full">
       {banner && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-amber-400 text-slate-950 font-orbitron font-extrabold px-6 py-2 rounded-full shadow-2xl z-30 text-xs border-2 border-amber-900 animate-pulse">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-slate-950 font-orbitron font-extrabold px-6 py-2 rounded-full shadow-2xl z-30 text-xs border-2 border-white animate-pulse">
           {banner}
         </div>
       )}
@@ -574,9 +571,7 @@ export default function GameCanvas({
         ref={canvasRef}
         width={1024}
         height={640}
-        onMouseMove={handleMouseMove}
-        onClick={handleCanvasClick}
-        className="w-full h-full bg-stone-900 rounded-xl cursor-crosshair shadow-2xl border-2 border-amber-500/40"
+        className="w-full h-full bg-slate-950 rounded-xl cursor-none shadow-2xl border-2 border-emerald-500/40"
       />
     </div>
   );

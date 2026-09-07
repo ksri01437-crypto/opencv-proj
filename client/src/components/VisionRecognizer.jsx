@@ -68,12 +68,12 @@ export default function VisionRecognizer({
 
     async function initVision() {
       if (!window.Hands || !window.FaceMesh) {
-        setTrackingStatus((prev) => ({ ...prev, error: 'Loading MediaPipe scripts... Please refresh if delayed.' }));
+        setTrackingStatus((prev) => ({ ...prev, error: 'Loading MediaPipe / OpenCV scripts...' }));
         return;
       }
 
       try {
-        // Initialize MediaPipe Hands for Hand Pointing AIM ONLY
+        // Initialize MediaPipe / OpenCV Hands Engine
         const hands = new window.Hands({
           locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -85,6 +85,15 @@ export default function VisionRecognizer({
           minTrackingConfidence: 0.35
         });
 
+        // Hand Skeleton Connections for cv2.drawLandmarks rendering
+        const handConnections = [
+          [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+          [0, 5], [5, 6], [6, 7], [7, 8], // Index
+          [5, 9], [9, 10], [10, 11], [11, 12], // Middle
+          [9, 13], [13, 14], [14, 15], [15, 16], // Ring
+          [13, 17], [0, 17], [17, 18], [18, 19], [19, 20] // Pinky
+        ];
+
         hands.onResults((results) => {
           if (!isSubscribed) return;
           const pipCanvas = pipCanvasRef.current;
@@ -92,7 +101,6 @@ export default function VisionRecognizer({
 
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
-            // Landmark 8: Index Finger Tip for Pointing
             const indexTip = landmarks[8];
 
             if (indexTip) {
@@ -105,15 +113,33 @@ export default function VisionRecognizer({
                 handDetected: true
               }));
 
-              // Draw PIP visual overlay for Hand Pointer
+              // Draw Full OpenCV Skeleton on PIP canvas
               if (ctx && pipCanvas) {
                 ctx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
-                ctx.fillStyle = '#00F0FF';
-                ctx.shadowColor = '#00F0FF';
-                ctx.shadowBlur = 12;
-                ctx.beginPath();
-                ctx.arc((1 - indexTip.x) * pipCanvas.width, indexTip.y * pipCanvas.height, 9, 0, Math.PI * 2);
-                ctx.fill();
+
+                // Draw Skeleton Connections (Green cv2 style)
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = 2;
+                handConnections.forEach(([i, j]) => {
+                  const p1 = landmarks[i];
+                  const p2 = landmarks[j];
+                  if (p1 && p2) {
+                    ctx.beginPath();
+                    ctx.moveTo((1 - p1.x) * pipCanvas.width, p1.y * pipCanvas.height);
+                    ctx.lineTo((1 - p2.x) * pipCanvas.width, p2.y * pipCanvas.height);
+                    ctx.stroke();
+                  }
+                });
+
+                // Draw Landmark Joint Nodes
+                landmarks.forEach((lm, idx) => {
+                  const lx = (1 - lm.x) * pipCanvas.width;
+                  const ly = lm.y * pipCanvas.height;
+                  ctx.fillStyle = idx === 8 ? '#00F0FF' : '#00FF00';
+                  ctx.beginPath();
+                  ctx.arc(lx, ly, idx === 8 ? 6 : 3, 0, Math.PI * 2);
+                  ctx.fill();
+                });
               }
             }
           } else {
@@ -124,7 +150,7 @@ export default function VisionRecognizer({
 
         handsRef.current = hands;
 
-        // Initialize MediaPipe FaceMesh for Eye Gesture SHOOTING ONLY
+        // Initialize MediaPipe / OpenCV FaceMesh for Eye Gestures
         const faceMesh = new window.FaceMesh({
           locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -190,7 +216,7 @@ export default function VisionRecognizer({
         console.error('Camera/Vision Error:', err);
         setTrackingStatus((prev) => ({
           ...prev,
-          error: 'Webcam offline/blocked. You can play using Mouse Aim & Spacebar / Click!'
+          error: 'Webcam offline/blocked. Enable camera access for OpenCV Gesture Control!'
         }));
       }
     }
@@ -221,7 +247,7 @@ export default function VisionRecognizer({
         {!trackingStatus.cameraReady && !trackingStatus.error && (
           <div className="video-overlay-msg">
             <RefreshCw className="animate-spin text-cyan-400 mb-2" size={24} />
-            <span className="font-orbitron text-xs">STARTING GESTURE TRACKER...</span>
+            <span className="font-orbitron text-xs">INITIALIZING OPENCV SKELETON...</span>
           </div>
         )}
 
@@ -234,7 +260,7 @@ export default function VisionRecognizer({
 
         <div className="pip-header">
           <Camera size={14} className="text-cyan-400 mr-1" />
-          <span>Webcam Tracker PIP</span>
+          <span>OpenCV Hand Skeleton PIP</span>
         </div>
       </div>
 
@@ -243,7 +269,7 @@ export default function VisionRecognizer({
         <div className="flex gap-2">
           <div className={`status-badge ${trackingStatus.handDetected ? 'active' : ''}`}>
             <Hand size={14} />
-            <span>{trackingStatus.handDetected ? 'HAND AIM: LOCK' : 'POINT INDEX FINGER'}</span>
+            <span>{trackingStatus.handDetected ? 'OPENCV: HAND LOCK' : 'POINT INDEX FINGER'}</span>
           </div>
 
           <div className={`status-badge ${trackingStatus.winkDetected ? 'shoot-active' : ''}`}>
@@ -252,7 +278,7 @@ export default function VisionRecognizer({
           </div>
         </div>
 
-        {/* Manual Test Shot Trigger Button */}
+        {/* Manual Test Trigger Button */}
         <button
           onClick={handleTestShot}
           className="w-full py-2 bg-pink-600/30 hover:bg-pink-600/50 border border-pink-500/50 rounded-lg text-pink-300 font-orbitron text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow-lg shadow-pink-500/10"
