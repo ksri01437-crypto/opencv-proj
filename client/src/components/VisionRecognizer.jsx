@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Eye, Hand, VideoOff, RefreshCw, Zap } from 'lucide-react';
+import { Camera, Eye, Hand, VideoOff, RefreshCw, Zap, Move } from 'lucide-react';
 
 export default function VisionRecognizer({
   onAimUpdate,
@@ -10,6 +10,7 @@ export default function VisionRecognizer({
 }) {
   const videoRef = useRef(null);
   const pipCanvasRef = useRef(null);
+  const [pipPosition, setPipPosition] = useState('top-right'); // 'top-right', 'bottom-right', 'top-left'
   const [trackingStatus, setTrackingStatus] = useState({
     cameraReady: false,
     handDetected: false,
@@ -232,8 +233,21 @@ export default function VisionRecognizer({
     };
   }, [sensitivity, onShootTrigger]);
 
+  const togglePos = () => {
+    if (pipPosition === 'top-right') setPipPosition('bottom-right');
+    else if (pipPosition === 'bottom-right') setPipPosition('top-left');
+    else setPipPosition('top-right');
+  };
+
+  const getPositionClass = () => {
+    if (!isFloatingPIP) return 'vision-container';
+    if (pipPosition === 'bottom-right') return 'floating-pip-container absolute bottom-4 right-4 z-40 w-44 md:w-52 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-500/70 bg-slate-950/95 backdrop-blur';
+    if (pipPosition === 'top-left') return 'floating-pip-container absolute top-4 left-4 z-40 w-44 md:w-52 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-500/70 bg-slate-950/95 backdrop-blur';
+    return 'floating-pip-container absolute top-4 right-4 z-40 w-44 md:w-52 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-500/70 bg-slate-950/95 backdrop-blur';
+  };
+
   return (
-    <div className={isFloatingPIP ? "floating-pip-container absolute top-4 right-4 z-40 w-44 md:w-56 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-500/60 bg-slate-950/90 backdrop-blur" : "vision-container"}>
+    <div className={getPositionClass()}>
       {/* Video Feed Preview PIP */}
       <div className="relative w-full aspect-video bg-slate-900 overflow-hidden">
         <video ref={videoRef} className="w-full h-full object-cover transform -scale-x-100" playsInline muted></video>
@@ -253,17 +267,28 @@ export default function VisionRecognizer({
           </div>
         )}
 
-        <div className="pip-header bg-slate-950/80 backdrop-blur px-2 py-0.5 rounded text-[10px] text-emerald-400 font-orbitron flex items-center gap-1 border border-emerald-500/30">
-          <Camera size={10} className="text-emerald-400" />
-          <span>OPENCV SKELETON</span>
+        <div className="pip-header bg-slate-950/90 backdrop-blur px-2 py-0.5 rounded text-[10px] text-emerald-400 font-orbitron flex items-center justify-between border border-emerald-500/40 w-full">
+          <div className="flex items-center gap-1">
+            <Camera size={10} className="text-emerald-400" />
+            <span>OPENCV PIP</span>
+          </div>
+
+          <button
+            onClick={togglePos}
+            className="text-[9px] text-cyan-300 hover:text-white flex items-center gap-0.5 bg-slate-800 px-1 py-0.5 rounded transition"
+            title="Toggle PIP position on Canvas"
+          >
+            <Move size={8} />
+            <span>POS</span>
+          </button>
         </div>
       </div>
 
       {/* Live Vision Status Dashboard */}
-      <div className="p-2 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono">
+      <div className="p-1.5 bg-slate-950/95 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono">
         <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${trackingStatus.handDetected ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-900 text-slate-500'}`}>
           <Hand size={12} />
-          <span>{trackingStatus.handDetected ? 'HAND LOCK' : 'SEARCH HAND'}</span>
+          <span>{trackingStatus.handDetected ? 'HAND LOCK' : 'NO HAND'}</span>
         </div>
 
         <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${trackingStatus.winkDetected ? 'bg-pink-500/30 text-pink-400 border border-pink-500/50 animate-pulse' : 'bg-slate-900 text-slate-400'}`}>
