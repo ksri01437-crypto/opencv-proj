@@ -72,13 +72,12 @@
         <!-- FLOATING BOTTOM-RIGHT CAMERA PREVIEW -->
         <div id="camera-panel" class="bottom-right-panel">
             <div class="camera-header">
-                <span class="live-badge"><span class="pulse-dot">●</span> LIVE</span>
+                <span class="live-badge"><span class="pulse-dot">●</span> LIVE CAMERA</span>
                 <span id="fps-counter">60 FPS</span>
             </div>
             <div class="camera-view">
-                <img id="webcam-feed" src="" alt="Webcam Feed Loading...">
-                <video id="webcam-fallback-video" class="hidden" autoplay playsinline muted></video>
-                <canvas id="webcam-fallback-canvas" class="hidden"></canvas>
+                <video id="webcam-video" autoplay playsinline muted></video>
+                <canvas id="camera-overlay-canvas"></canvas>
             </div>
             <div class="gesture-status">
                 <div class="status-row">

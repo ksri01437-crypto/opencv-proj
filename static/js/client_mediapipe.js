@@ -1,14 +1,12 @@
-// Client-Side Browser MediaPipe Vision & Gesture Engine
+// Client-Side Browser MediaPipe Vision & Camera Overlay Engine
 class ClientMediaPipeEngine {
     constructor() {
-        this.video = document.getElementById('webcam-fallback-video');
-        this.canvas = document.getElementById('webcam-fallback-canvas');
-        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
-        this.feedImg = document.getElementById('webcam-feed');
+        this.video = document.getElementById('webcam-video');
+        this.overlayCanvas = document.getElementById('camera-overlay-canvas');
+        this.ctx = this.overlayCanvas ? this.overlayCanvas.getContext('2d') : null;
 
         this.hands = null;
         this.faceMesh = null;
-        this.camera = null;
 
         // Coordinate Smoothing
         this.smoothedPointer = null;
@@ -31,17 +29,21 @@ class ClientMediaPipeEngine {
 
         this.lastHandLandmarks = null;
         this.lastFaceLandmarks = null;
+
+        this.isCameraActive = false;
     }
 
     async init() {
+        if (!this.video) return;
+
         if (typeof Hands === 'undefined' || typeof FaceMesh === 'undefined') {
-            console.log("MediaPipe CDN scripts loading...");
-            setTimeout(() => this.init(), 1000);
+            console.log("Waiting for MediaPipe CDN scripts to load...");
+            setTimeout(() => this.init(), 600);
             return;
         }
 
         try {
-            // Setup MediaPipe Hands
+            // Initialize MediaPipe Hands
             this.hands = new Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
             });
@@ -53,7 +55,7 @@ class ClientMediaPipeEngine {
             });
             this.hands.onResults((results) => this.onHandResults(results));
 
-            // Setup MediaPipe Face Mesh
+            // Initialize MediaPipe Face Mesh
             this.faceMesh = new FaceMesh({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
             });
@@ -65,31 +67,29 @@ class ClientMediaPipeEngine {
             });
             this.faceMesh.onResults((results) => this.onFaceResults(results));
 
-            // Start User Webcam
+            // Request User Webcam Access directly in browser
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480, facingMode: 'user' }
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
                 });
                 this.video.srcObject = stream;
                 await this.video.play();
-
-                this.canvas.width = 320;
-                this.canvas.height = 240;
+                this.isCameraActive = true;
 
                 this.startFrameLoop();
-                console.log("Client-side MediaPipe webcam tracking started successfully.");
+                console.log("Webcam video stream and MediaPipe tracking started successfully.");
             }
         } catch (e) {
-            console.warn("Client MediaPipe initialization error (backend fallback active):", e);
+            console.warn("Webcam camera initialization error:", e);
         }
     }
 
     async startFrameLoop() {
         const processFrame = async () => {
-            if (this.video.readyState >= 2) {
+            if (this.video && this.video.readyState >= 2 && this.isCameraActive) {
                 await this.hands.send({ image: this.video });
                 await this.faceMesh.send({ image: this.video });
-                this.drawWebcamOverlay();
+                this.drawOverlay();
             }
             requestAnimationFrame(processFrame);
         };
@@ -108,7 +108,7 @@ class ClientMediaPipeEngine {
         const indexTip = landmarks[8];
         const wrist = landmarks[0];
 
-        // Mirrored x coordinate
+        // Mirrored x coordinate so moving right in real life moves cursor right
         const rawX = 1.0 - indexTip.x;
         const rawY = indexTip.y;
 
@@ -159,7 +159,7 @@ class ClientMediaPipeEngine {
                 const dist = Math.hypot(dx, dy);
                 const speed = dist / dt;
 
-                if (speed > 1.1 && dist > 0.07) {
+                if (speed > 0.95 && dist > 0.07) {
                     gesture = 'swipe';
                     this.swipeCooldown = now + 120;
 
@@ -180,7 +180,6 @@ class ClientMediaPipeEngine {
             }
         }
 
-        // Send payload to UI Controller
         if (typeof ui !== 'undefined') {
             ui.handleGestureData({
                 pointer: this.smoothedPointer,
@@ -200,7 +199,8 @@ class ClientMediaPipeEngine {
         const landmarks = results.multiFaceLandmarks[0];
         this.lastFaceLandmarks = landmarks;
 
-        const w = 320, h = 240;
+        const w = this.video.videoWidth || 320;
+        const h = this.video.videoHeight || 240;
         const leftEyeIndices = [362, 385, 387, 263, 373, 380];
         const rightEyeIndices = [33, 160, 158, 133, 153, 144];
 
@@ -290,35 +290,39 @@ class ClientMediaPipeEngine {
         }
     }
 
-    drawWebcamOverlay() {
-        if (!this.ctx) return;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
+    drawOverlay() {
+        if (!this.overlayCanvas || !this.ctx || !this.video) return;
+        const w = this.video.videoWidth || 320;
+        const h = this.video.videoHeight || 240;
 
-        this.ctx.save();
-        // Mirror horizontally
-        this.ctx.translate(w, 0);
-        this.ctx.scale(-1, 1);
-        this.ctx.drawImage(this.video, 0, 0, w, h);
+        if (this.overlayCanvas.width !== w || this.overlayCanvas.height !== h) {
+            this.overlayCanvas.width = w;
+            this.overlayCanvas.height = h;
+        }
 
-        // Draw Hand Skeleton
+        this.ctx.clearRect(0, 0, w, h);
+
+        // Draw Hand Skeleton Connections
         if (this.lastHandLandmarks) {
+            this.ctx.strokeStyle = 'rgba(0, 255, 204, 0.85)';
             this.ctx.fillStyle = '#00ffcc';
-            this.ctx.strokeStyle = 'rgba(0, 255, 204, 0.8)';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 3;
 
             for (let lm of this.lastHandLandmarks) {
                 this.ctx.beginPath();
-                this.ctx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI * 2);
+                this.ctx.arc(lm.x * w, lm.y * h, 4, 0, Math.PI * 2);
                 this.ctx.fill();
             }
 
-            // Highlight index tip
+            // Highlight Index Fingertip (#8)
             const indexTip = this.lastHandLandmarks[8];
             this.ctx.beginPath();
-            this.ctx.arc(indexTip.x * w, indexTip.y * h, 8, 0, Math.PI * 2);
+            this.ctx.arc(indexTip.x * w, indexTip.y * h, 10, 0, Math.PI * 2);
             this.ctx.fillStyle = '#ffff00';
+            this.ctx.shadowColor = '#ffff00';
+            this.ctx.shadowBlur = 10;
             this.ctx.fill();
+            this.ctx.shadowBlur = 0;
         }
 
         // Draw Eye Indicators
@@ -330,19 +334,12 @@ class ClientMediaPipeEngine {
             this.ctx.lineWidth = 2;
 
             this.ctx.beginPath();
-            this.ctx.arc(leftEye.x * w, leftEye.y * h, 6, 0, Math.PI * 2);
+            this.ctx.arc(leftEye.x * w, leftEye.y * h, 8, 0, Math.PI * 2);
             this.ctx.stroke();
 
             this.ctx.beginPath();
-            this.ctx.arc(rightEye.x * w, rightEye.y * h, 6, 0, Math.PI * 2);
+            this.ctx.arc(rightEye.x * w, rightEye.y * h, 8, 0, Math.PI * 2);
             this.ctx.stroke();
-        }
-
-        this.ctx.restore();
-
-        // Update image src for floating top-right panel
-        if (this.feedImg && (!ui || !ui.isConnected)) {
-            this.feedImg.src = this.canvas.toDataURL('image/jpeg', 0.65);
         }
     }
 }
