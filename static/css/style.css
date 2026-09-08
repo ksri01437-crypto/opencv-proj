@@ -319,11 +319,11 @@ body, html {
     bottom: 20px;
     right: 20px;
     top: auto;
-    width: 230px;
-    background: rgba(18, 20, 32, 0.92);
+    width: 175px;
+    background: rgba(14, 16, 26, 0.92);
     backdrop-filter: blur(10px);
     border: 2px solid rgba(0, 255, 204, 0.4);
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
     z-index: 100;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.2);
@@ -333,9 +333,39 @@ body, html {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
-    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.6);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cam-toggle-btn {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.cam-toggle-btn.active {
+    background: rgba(0, 255, 102, 0.2);
+    color: #00ff66;
+    border: 1px solid rgba(0, 255, 102, 0.4);
+}
+
+.cam-toggle-btn.inactive {
+    background: rgba(255, 0, 102, 0.2);
+    color: #ff0066;
+    border: 1px solid rgba(255, 0, 102, 0.4);
+}
+
+.pulse-dot.red {
+    color: #ff0066;
+}
+
+.pulse-dot.green {
+    color: #00ff66;
 }
 
 .live-badge {
@@ -365,7 +395,7 @@ body, html {
 .camera-view {
     position: relative;
     width: 100%;
-    height: 140px;
+    height: 110px;
     background-color: #000000;
     overflow: hidden;
 }

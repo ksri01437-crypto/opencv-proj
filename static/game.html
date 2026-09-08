@@ -72,8 +72,10 @@
         <!-- FLOATING BOTTOM-RIGHT CAMERA PREVIEW -->
         <div id="camera-panel" class="bottom-right-panel">
             <div class="camera-header">
-                <span class="live-badge"><span class="pulse-dot">●</span> LIVE CAMERA</span>
-                <span id="fps-counter">60 FPS</span>
+                <span class="live-badge"><span class="pulse-dot">●</span> CAMERA</span>
+                <button id="camera-toggle-btn" class="cam-toggle-btn active">
+                    <span class="pulse-dot green">●</span> CAM: ON
+                </button>
             </div>
             <div class="camera-view">
                 <video id="webcam-video" autoplay playsinline muted></video>

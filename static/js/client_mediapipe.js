@@ -7,6 +7,7 @@ class ClientMediaPipeEngine {
 
         this.hands = null;
         this.faceMesh = null;
+        this.stream = null;
 
         // Coordinate Smoothing
         this.smoothedPointer = null;
@@ -31,6 +32,11 @@ class ClientMediaPipeEngine {
         this.lastFaceLandmarks = null;
 
         this.isCameraActive = false;
+        this.isLoopRunning = false;
+
+        // Callback hooks for UI and Dashboards
+        this.onGestureData = null;
+        this.onCameraStateChange = null;
     }
 
     async init() {
@@ -67,28 +73,82 @@ class ClientMediaPipeEngine {
             });
             this.faceMesh.onResults((results) => this.onFaceResults(results));
 
-            // Request User Webcam Access directly in browser
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
-                });
-                this.video.srcObject = stream;
-                await this.video.play();
-                this.isCameraActive = true;
+            // Start webcam camera stream
+            await this.startCamera();
 
+            if (!this.isLoopRunning) {
+                this.isLoopRunning = true;
                 this.startFrameLoop();
-                console.log("Webcam video stream and MediaPipe tracking started successfully.");
             }
         } catch (e) {
             console.warn("Webcam camera initialization error:", e);
         }
     }
 
+    async startCamera() {
+        if (this.isCameraActive) return true;
+
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                this.stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+                });
+                if (this.video) {
+                    this.video.srcObject = this.stream;
+                    await this.video.play();
+                }
+                this.isCameraActive = true;
+                console.log("Webcam camera started successfully.");
+                if (this.onCameraStateChange) this.onCameraStateChange(true);
+                return true;
+            }
+        } catch (e) {
+            console.warn("Error starting webcam stream:", e);
+            this.isCameraActive = false;
+            if (this.onCameraStateChange) this.onCameraStateChange(false);
+            return false;
+        }
+    }
+
+    stopCamera() {
+        if (!this.isCameraActive) return;
+
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+        if (this.video) {
+            this.video.srcObject = null;
+        }
+        this.isCameraActive = false;
+        this.lastHandLandmarks = null;
+        this.lastFaceLandmarks = null;
+        this.drawOverlay();
+        console.log("Webcam camera stopped.");
+        if (this.onCameraStateChange) this.onCameraStateChange(false);
+    }
+
+    async toggleCamera() {
+        if (this.isCameraActive) {
+            this.stopCamera();
+            return false;
+        } else {
+            const success = await this.startCamera();
+            return success;
+        }
+    }
+
     async startFrameLoop() {
         const processFrame = async () => {
-            if (this.video && this.video.readyState >= 2 && this.isCameraActive) {
-                await this.hands.send({ image: this.video });
-                await this.faceMesh.send({ image: this.video });
+            if (this.video && this.video.readyState >= 2 && this.isCameraActive && this.hands && this.faceMesh) {
+                try {
+                    await this.hands.send({ image: this.video });
+                    await this.faceMesh.send({ image: this.video });
+                } catch (err) {
+                    // Ignore frame drop errors when stopping camera
+                }
+                this.drawOverlay();
+            } else if (!this.isCameraActive) {
                 this.drawOverlay();
             }
             requestAnimationFrame(processFrame);
@@ -96,7 +156,18 @@ class ClientMediaPipeEngine {
         requestAnimationFrame(processFrame);
     }
 
+    emitGestureData(data) {
+        if (this.onGestureData) {
+            this.onGestureData(data);
+        }
+        if (typeof ui !== 'undefined' && ui.handleGestureData) {
+            ui.handleGestureData(data);
+        }
+    }
+
     onHandResults(results) {
+        if (!this.isCameraActive) return;
+
         if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
             this.lastHandLandmarks = null;
             return;
@@ -106,6 +177,7 @@ class ClientMediaPipeEngine {
         this.lastHandLandmarks = landmarks;
 
         const indexTip = landmarks[8];
+        const thumbTip = landmarks[4];
         const wrist = landmarks[0];
 
         // Mirrored x coordinate so moving right in real life moves cursor right
@@ -144,11 +216,17 @@ class ClientMediaPipeEngine {
             gesture = 'fist';
         }
 
+        // Check Pinch Dragging Gesture (Thumb Tip #4 to Index Tip #8)
+        const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+        if (pinchDist < 0.055 && !isFist) {
+            gesture = 'pinch';
+        }
+
         // Swipe History & Velocity Detection
         this.handHistory.push({ x: rawX, y: rawY, t: now });
         this.handHistory = this.handHistory.filter(p => now - p.t <= 220);
 
-        if (this.handHistory.length >= 3 && now > this.swipeCooldown) {
+        if (this.handHistory.length >= 3 && now > this.swipeCooldown && gesture !== 'pinch') {
             const pOld = this.handHistory[0];
             const pNew = this.handHistory[this.handHistory.length - 1];
             const dt = (pNew.t - pOld.t) / 1000;
@@ -180,17 +258,17 @@ class ClientMediaPipeEngine {
             }
         }
 
-        if (typeof ui !== 'undefined') {
-            ui.handleGestureData({
-                pointer: this.smoothedPointer,
-                gesture: gesture,
-                direction: direction,
-                swipe_line: swipeLine
-            });
-        }
+        this.emitGestureData({
+            pointer: this.smoothedPointer,
+            gesture: gesture,
+            direction: direction,
+            swipe_line: swipeLine
+        });
     }
 
     onFaceResults(results) {
+        if (!this.isCameraActive) return;
+
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
             this.lastFaceLandmarks = null;
             return;
@@ -199,8 +277,8 @@ class ClientMediaPipeEngine {
         const landmarks = results.multiFaceLandmarks[0];
         this.lastFaceLandmarks = landmarks;
 
-        const w = this.video.videoWidth || 320;
-        const h = this.video.videoHeight || 240;
+        const w = (this.video && this.video.videoWidth) ? this.video.videoWidth : 320;
+        const h = (this.video && this.video.videoHeight) ? this.video.videoHeight : 240;
         const leftEyeIndices = [362, 385, 387, 263, 373, 380];
         const rightEyeIndices = [33, 160, 158, 133, 153, 144];
 
@@ -213,7 +291,7 @@ class ClientMediaPipeEngine {
 
         let action = null;
 
-        // Both Eyes Closed -> Pause
+        // Both Eyes Closed -> Pause / Toggle
         if (isLeftClosed && isRightClosed) {
             if (!this.bothEyeCloseStart) this.bothEyeCloseStart = now;
             const duration = now - this.bothEyeCloseStart;
@@ -259,15 +337,13 @@ class ClientMediaPipeEngine {
             }
         }
 
-        if (typeof ui !== 'undefined') {
-            ui.handleGestureData({
-                left_eye: isLeftClosed ? 'closed' : 'open',
-                right_eye: isRightClosed ? 'closed' : 'open',
-                left_ear: leftEar.toFixed(3),
-                right_ear: rightEar.toFixed(3),
-                action: action
-            });
-        }
+        this.emitGestureData({
+            left_eye: isLeftClosed ? 'closed' : 'open',
+            right_eye: isRightClosed ? 'closed' : 'open',
+            left_ear: leftEar.toFixed(3),
+            right_ear: rightEar.toFixed(3),
+            action: action
+        });
     }
 
     computeEAR(landmarks, indices, w, h) {
@@ -291,9 +367,9 @@ class ClientMediaPipeEngine {
     }
 
     drawOverlay() {
-        if (!this.overlayCanvas || !this.ctx || !this.video) return;
-        const w = this.video.videoWidth || 320;
-        const h = this.video.videoHeight || 240;
+        if (!this.overlayCanvas || !this.ctx) return;
+        const w = (this.video && this.video.videoWidth) ? this.video.videoWidth : (this.overlayCanvas.width || 320);
+        const h = (this.video && this.video.videoHeight) ? this.video.videoHeight : (this.overlayCanvas.height || 240);
 
         if (this.overlayCanvas.width !== w || this.overlayCanvas.height !== h) {
             this.overlayCanvas.width = w;
@@ -301,6 +377,16 @@ class ClientMediaPipeEngine {
         }
 
         this.ctx.clearRect(0, 0, w, h);
+
+        if (!this.isCameraActive) {
+            this.ctx.fillStyle = 'rgba(10, 12, 20, 0.95)';
+            this.ctx.fillRect(0, 0, w, h);
+            this.ctx.fillStyle = '#ff3366';
+            this.ctx.font = 'bold 14px Outfit, sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('📷 CAMERA OFF', w / 2, h / 2);
+            return;
+        }
 
         // Draw Hand Skeleton Connections
         if (this.lastHandLandmarks) {

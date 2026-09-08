@@ -8,12 +8,14 @@ class MouseDashboardController {
         this.telRightEye = document.getElementById('tel-right-eye');
         this.telAction = document.getElementById('tel-action');
         this.toggleBtn = document.getElementById('toggle-mouse-btn');
+        this.cameraToggleBtn = document.getElementById('camera-toggle-btn');
 
         this.mouseEnabled = true;
         this.ws = null;
 
         this.initToggleBtn();
         this.initWebSocket();
+        this.initClientMediaPipe();
     }
 
     initToggleBtn() {
@@ -22,6 +24,22 @@ class MouseDashboardController {
                 this.mouseEnabled = !this.mouseEnabled;
                 this.updateToggleUI();
             });
+        }
+
+        if (this.cameraToggleBtn) {
+            this.cameraToggleBtn.addEventListener('click', async () => {
+                if (typeof clientMP !== 'undefined') {
+                    const isActive = await clientMP.toggleCamera();
+                    this.updateCameraToggleUI(isActive);
+                }
+            });
+        }
+    }
+
+    initClientMediaPipe() {
+        if (typeof clientMP !== 'undefined') {
+            clientMP.onGestureData = (data) => this.handleGestureData(data);
+            clientMP.onCameraStateChange = (active) => this.updateCameraToggleUI(active);
         }
     }
 
@@ -32,6 +50,17 @@ class MouseDashboardController {
         } else {
             this.toggleBtn.className = 'toggle-btn inactive';
             this.toggleBtn.innerHTML = '<span class="dot-indicator red">●</span> MOUSE CONTROL: DISABLED';
+        }
+    }
+
+    updateCameraToggleUI(active) {
+        if (!this.cameraToggleBtn) return;
+        if (active) {
+            this.cameraToggleBtn.className = 'toggle-btn active';
+            this.cameraToggleBtn.innerHTML = '<span class="dot-indicator green">●</span> CAMERA: ON';
+        } else {
+            this.cameraToggleBtn.className = 'toggle-btn inactive';
+            this.cameraToggleBtn.innerHTML = '<span class="dot-indicator red">●</span> CAMERA: OFF';
         }
     }
 
@@ -60,7 +89,7 @@ class MouseDashboardController {
     }
 
     handleGestureData(data) {
-        // Intercept data from client_mediapipe.js and forward to backend for PyAutoGUI execution
+        // Forward client MediaPipe data over WebSocket for PyAutoGUI execution
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             data.mode = 'mouse';
             data.mouse_enabled = this.mouseEnabled;
@@ -122,8 +151,3 @@ class MouseDashboardController {
 }
 
 const mouseDash = new MouseDashboardController();
-
-// Override client_mediapipe handler when on mouse dashboard
-if (typeof ui !== 'undefined') {
-    ui.handleGestureData = (data) => mouseDash.handleGestureData(data);
-}
