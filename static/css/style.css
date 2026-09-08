@@ -651,6 +651,24 @@ body, html {
     text-shadow: 0 0 10px rgba(255, 204, 0, 0.6);
 }
 
+.hud-pause-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.hud-pause-btn:hover {
+    background: rgba(255, 34, 68, 0.3);
+    border-color: #ff2244;
+}
+
+
 /* FLOATING STEERING ZONE INDICATOR HUD */
 #steering-hud {
     position: absolute;

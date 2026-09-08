@@ -4,6 +4,23 @@ class F1RacingGame {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
 
+        // Player Car (Defined before resize)
+        this.car = {
+            x: 0,
+            y: 0,
+            width: 62,
+            height: 120,
+            lane: 1,
+            targetX: 0,
+            tilt: 0, // Tilt angle in radians
+            sparks: []
+        };
+
+        // Road Animation & Dimensions
+        this.roadOffset = 0;
+        this.trackWidth = 500;
+        this.laneWidth = this.trackWidth / 3;
+
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
@@ -28,27 +45,10 @@ class F1RacingGame {
         this.targetLane = 1;
         this.handZone = 'center'; // 'left', 'center', 'right'
 
-        // Player Car
-        this.car = {
-            x: 0,
-            y: 0,
-            width: 58,
-            height: 110,
-            lane: 1,
-            targetX: 0,
-            tilt: 0, // Tilt angle in radians
-            sparks: []
-        };
-
         // Enemy Cars
         this.enemies = [];
         this.enemySpawnTimer = 0;
-        this.enemyColors = ['#ff3333', '#ffaa00', '#aa00ff', '#00ff66', '#00ffff', '#ffffff'];
-
-        // Road Animation
-        this.roadOffset = 0;
-        this.trackWidth = 480;
-        this.laneWidth = this.trackWidth / 3;
+        this.enemyColors = ['#ffaa00', '#aa00ff', '#00ff66', '#00ffff', '#ffffff', '#ff00aa'];
 
         // Speed Lines & Particles
         this.speedLines = [];
@@ -68,13 +68,14 @@ class F1RacingGame {
         this.canvas.height = window.innerHeight;
 
         // Adapt track width to screen size
-        this.trackWidth = Math.min(540, Math.max(360, this.canvas.width * 0.45));
+        this.trackWidth = Math.min(560, Math.max(380, this.canvas.width * 0.48));
         this.laneWidth = this.trackWidth / 3;
 
         if (this.car) {
-            this.car.y = this.canvas.height - 150;
+            // Position player car clearly in the foreground at the bottom of the road
+            this.car.y = Math.max(120, this.canvas.height - 220);
             this.car.targetX = this.getLaneCenterX(this.car.lane);
-            if (this.car.x === 0) this.car.x = this.car.targetX;
+            this.car.x = this.car.targetX;
         }
     }
 
@@ -235,15 +236,6 @@ class F1RacingGame {
         }
 
         this.updateLaneHUD();
-
-        // Fist -> Pause/Resume
-        if (data.action === 'toggle_control' || data.gesture === 'fist') {
-            if (this.state === 'PLAYING') {
-                this.pauseGame();
-            } else if (this.state === 'PAUSED') {
-                this.resumeGame();
-            }
-        }
     }
 
     setLane(laneIndex) {
@@ -255,6 +247,11 @@ class F1RacingGame {
         const leftIndicator = document.getElementById('indicator-left');
         const centerIndicator = document.getElementById('indicator-center');
         const rightIndicator = document.getElementById('indicator-right');
+        const zoneElem = document.getElementById('status-zone');
+
+        if (zoneElem) {
+            zoneElem.innerText = this.handZone.toUpperCase();
+        }
 
         if (!leftIndicator || !centerIndicator || !rightIndicator) return;
 
@@ -276,8 +273,10 @@ class F1RacingGame {
         this.lastFrameTime = performance.now();
 
         this.setLane(1);
+        this.car.y = Math.max(120, this.canvas.height - 220);
         this.car.x = this.getLaneCenterX(1);
         this.car.tilt = 0;
+
 
         document.getElementById('start-modal').classList.add('hidden');
         document.getElementById('game-over-modal').classList.add('hidden');
@@ -616,6 +615,20 @@ class F1RacingGame {
         ctx.ellipse(0, 10, hw + 10, hh + 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // Player Aura Glow so car is unmistakably visible
+        if (isPlayer) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 255, 204, 0.85)';
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 16;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(0, 8, hw + 12, hh + 8, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+
         // 4 Wide F1 Slick Tires
         ctx.fillStyle = '#111317';
         const tireW = 12;
@@ -744,6 +757,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const resumeBtn = document.getElementById('btn-resume-race');
     if (resumeBtn) {
         resumeBtn.addEventListener('click', () => f1Game.resumeGame());
+    }
+
+    const pauseHudBtn = document.getElementById('btn-pause-hud');
+    if (pauseHudBtn) {
+        pauseHudBtn.addEventListener('click', () => {
+            if (f1Game) {
+                if (f1Game.state === 'PLAYING') f1Game.pauseGame();
+                else if (f1Game.state === 'PAUSED') f1Game.resumeGame();
+            }
+        });
     }
 
     const cameraToggleBtn = document.getElementById('camera-toggle-btn');

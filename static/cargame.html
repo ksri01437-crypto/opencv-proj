@@ -48,6 +48,8 @@
                     <span class="stat-label">DISTANCE</span>
                     <span id="distance-val" class="stat-value">0.0 KM</span>
                 </div>
+
+                <button id="btn-pause-hud" class="hud-pause-btn" title="Pause Game">⏸️ PAUSE</button>
             </div>
         </header>
 
@@ -88,8 +90,8 @@
                     <span id="status-steer" class="status-tag tag-pointing">HAND TRACKING</span>
                 </div>
                 <div class="status-row">
-                    <span class="status-lbl">PAUSE GESTURE</span>
-                    <span class="status-tag tag-fist">✊ MAKE FIST</span>
+                    <span class="status-lbl">LANE ZONE</span>
+                    <span id="status-zone" class="status-tag tag-open">CENTER</span>
                 </div>
             </div>
         </div>
@@ -138,7 +140,7 @@
             <div class="modal-card mini-card">
                 <div class="modal-icon">⏸️</div>
                 <h2 class="modal-title">RACE PAUSED</h2>
-                <p class="modal-subtitle">Make a Fist ✊ or click Resume below</p>
+                <p class="modal-subtitle">Click Resume below or press ESC / P to continue</p>
                 
                 <div class="modal-actions">
                     <button id="btn-resume-race" class="btn-primary f1-btn">▶️ RESUME</button>
@@ -146,6 +148,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- GAME OVER CRASH MODAL -->
         <div id="game-over-modal" class="modal-overlay hidden">

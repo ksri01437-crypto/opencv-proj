@@ -22,8 +22,9 @@ The platform is **100% hand-gesture controlled** (no eye winks or facial trackin
 | **Left Click / Select** | 👌 Pinch (Thumb + Index Tip) | Fruit Game & Real Mouse |
 | **Drag & Drop** | 👌 Hold Pinch | Real Mouse |
 | **Right Click** | ✌️ Peace Sign (2 Fingers Extended) | Real Mouse |
-| **Pause / Toggle Control** | ✊ Make a Fist | All Modes |
+| **Pause / Toggle Control** | ✊ Make a Fist | Fruit Game & Real Mouse |
 | **Neutral Navigation** | 🖐️ Open Palm | All Modes |
+
 
 
 ---
