@@ -27,17 +27,23 @@ class UIController {
     initButtons() {
         const startBtn = document.getElementById('btn-start');
         if (startBtn) {
-            startBtn.addEventListener('click', () => {
+            startBtn.addEventListener('click', async () => {
                 document.getElementById('start-modal').classList.add('hidden');
                 if (this.virtualPointer) this.virtualPointer.classList.remove('hidden');
                 game.startGame();
+                if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
+                    await clientMP.startCamera();
+                }
             });
         }
 
         const resumeBtn = document.getElementById('btn-resume');
         if (resumeBtn) {
-            resumeBtn.addEventListener('click', () => {
+            resumeBtn.addEventListener('click', async () => {
                 game.resumeGame();
+                if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
+                    await clientMP.startCamera();
+                }
             });
         }
 
@@ -125,7 +131,7 @@ class UIController {
     }
 
     handleGestureData(data) {
-        // 1. Update Camera Video Feed
+        // 1. Update Camera Video Feed if available
         if (data.frame && this.webcamFeed) {
             this.webcamFeed.src = data.frame;
         }
@@ -156,19 +162,12 @@ class UIController {
             }
         }
 
-        // 4. Fist Gesture -> Pause
-        if (data.gesture === 'fist') {
-            if (typeof game !== 'undefined' && game.state === 'PLAYING') {
-                game.pauseGame();
-            }
-        }
-
-        // 5. Eye Action Triggering
-        if (data.action === 'left_click') {
+        // 4. Hand Action Triggering
+        if (data.action === 'left_click' || data.gesture === 'pinch') {
             this.triggerVirtualClick();
-        } else if (data.action === 'right_click') {
+        } else if (data.action === 'right_click' || data.gesture === 'peace') {
             this.triggerVirtualRightClick();
-        } else if (data.action === 'both_eyes_closed') {
+        } else if (data.action === 'toggle_control' || data.gesture === 'fist') {
             if (typeof game !== 'undefined') {
                 if (game.state === 'PLAYING') {
                     game.pauseGame();
@@ -178,7 +177,7 @@ class UIController {
             }
         }
 
-        // 6. Update Gesture Status Badges
+        // 5. Update Gesture Status Badges
         this.updateStatusBadges(data);
     }
 
@@ -232,7 +231,7 @@ class UIController {
         if (typeof game !== 'undefined') {
             if (game.state === 'PLAYING') {
                 const { x, y } = this.pointerPos;
-                game.processSwipeLine(x - 20, y - 20, x + 20, y + 20);
+                game.processSwipeLine(x - 25, y - 25, x + 25, y + 25);
             } else if (game.state === 'PAUSED') {
                 game.resumeGame();
             }
@@ -243,23 +242,29 @@ class UIController {
         if (typeof sounds !== 'undefined') sounds.playClickSound();
         if (typeof game !== 'undefined' && game.state === 'PLAYING') {
             const { x, y } = this.pointerPos;
-            game.processSwipeLine(x - 30, y, x + 30, y);
+            game.processSwipeLine(x - 35, y, x + 35, y);
         }
     }
 
     updateStatusBadges(data) {
         if (!this.statusHand) return;
 
-        // Hand Badge
+        // Hand Gesture Badge
         if (data.gesture === 'swipe') {
             this.statusHand.className = 'status-tag tag-swipe';
             this.statusHand.innerText = `⚡ SWIPING (${data.direction || 'SWIPE'})`;
+        } else if (data.gesture === 'pinch') {
+            this.statusHand.className = 'status-tag tag-pinch';
+            this.statusHand.innerText = '👌 PINCH (CLICK)';
+        } else if (data.gesture === 'peace') {
+            this.statusHand.className = 'status-tag tag-peace';
+            this.statusHand.innerText = '✌️ PEACE (RIGHT)';
         } else if (data.gesture === 'fist') {
             this.statusHand.className = 'status-tag tag-fist';
-            this.statusHand.innerText = '✊ FIST';
-        } else if (data.gesture === 'pinch') {
-            this.statusHand.className = 'status-tag tag-swipe';
-            this.statusHand.innerText = '👌 PINCH';
+            this.statusHand.innerText = '✊ FIST (PAUSE)';
+        } else if (data.gesture === 'open_palm') {
+            this.statusHand.className = 'status-tag tag-open';
+            this.statusHand.innerText = '🖐️ OPEN PALM';
         } else if (data.pointer) {
             this.statusHand.className = 'status-tag tag-pointing';
             this.statusHand.innerText = '☝ POINTING';
@@ -268,33 +273,14 @@ class UIController {
             this.statusHand.innerText = 'NO HAND';
         }
 
-        // Left Eye Badge
-        if (this.statusLeftEye) {
-            if (data.left_eye === 'closed') {
-                this.statusLeftEye.className = 'status-tag tag-closed';
-                this.statusLeftEye.innerText = '👁️ CLOSED';
-            } else {
-                this.statusLeftEye.className = 'status-tag tag-open';
-                this.statusLeftEye.innerText = '👁️ OPEN';
-            }
-        }
-
-        // Right Eye Badge
-        if (this.statusRightEye) {
-            if (data.right_eye === 'closed') {
-                this.statusRightEye.className = 'status-tag tag-closed';
-                this.statusRightEye.innerText = '👁️ CLOSED';
-            } else {
-                this.statusRightEye.className = 'status-tag tag-open';
-                this.statusRightEye.innerText = '👁️ OPEN';
-            }
-        }
-
         // Action Badge
         if (this.statusAction) {
             if (data.action) {
                 this.statusAction.className = 'status-tag tag-action';
-                this.statusAction.innerText = data.action.toUpperCase();
+                this.statusAction.innerText = data.action.replace('_', ' ').toUpperCase();
+            } else if (data.is_pinch) {
+                this.statusAction.className = 'status-tag tag-pinch';
+                this.statusAction.innerText = 'DRAGGING';
             } else {
                 this.statusAction.className = 'status-tag tag-idle';
                 this.statusAction.innerText = 'MOVING';

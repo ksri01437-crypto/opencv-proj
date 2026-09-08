@@ -28,13 +28,6 @@ class GestureEngine:
         # Pinch Drag State
         self.is_pinching = False
 
-        # OpenCV Face Cascade (optional fallback)
-        cascade_path = getattr(cv2.data, 'haarcascades', '') + 'haarcascade_frontalface_default.xml'
-        if os.path.exists(cascade_path):
-            self.face_cascade = cv2.CascadeClassifier(cascade_path)
-        else:
-            self.face_cascade = None
-
         # Pointer & History
         self.smoothed_pointer = None
         self.smoothing_factor = config.MOUSE_SMOOTHING_FACTOR
@@ -47,13 +40,10 @@ class GestureEngine:
 
     def process_frame(self, frame, mode=None):
         """
-        Processes an BGR OpenCV camera frame.
+        Processes an BGR OpenCV camera frame (if backend capture is used).
         """
         if mode:
             self.mode = mode
-
-        h, w, c = frame.shape
-        current_time = time.time()
 
         gesture_data = {
             "mode": self.mode,
@@ -62,26 +52,9 @@ class GestureEngine:
             "gesture": "none",
             "direction": None,
             "swipe_line": None,
-            "left_eye": "open",
-            "right_eye": "open",
-            "left_ear": 0.30,
-            "right_ear": 0.30,
             "action": None,
             "mouse_enabled": self.mouse_enabled
         }
-
-        # Face Detection Overlay on Preview Frame
-        if self.face_cascade and not self.face_cascade.empty():
-            try:
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = self.face_cascade.detectMultiScale(gray, 1.2, 5, minSize=(60, 60))
-                for (fx, fy, fw, fh) in faces:
-                    cv2.rectangle(frame, (fx, fy), (fx+fw, fy+fh), (0, 255, 200), 2)
-                    eye_y = int(fy + fh * 0.35)
-                    cv2.circle(frame, (int(fx + fw * 0.3), eye_y), 8, (0, 255, 0), 2)
-                    cv2.circle(frame, (int(fx + fw * 0.7), eye_y), 8, (0, 255, 0), 2)
-            except Exception:
-                pass
 
         # Draw HUD Indicator
         mode_text = "MODE: GAME (NO OS MOUSE)" if self.mode == "game" else "MODE: REAL OS MOUSE"
@@ -96,10 +69,13 @@ class GestureEngine:
         Executes Real PyAutoGUI OS Mouse actions ONLY when mode == 'mouse'
         """
         if self.mode != "mouse" or not self.mouse_enabled:
+            # If toggle action is triggered, still allow re-enabling mouse
+            if action_type == "toggle_control" or action_type == "toggle_mouse":
+                self.mouse_enabled = not self.mouse_enabled
             return
 
         try:
-            # 1. Cursor Movement
+            # 1. Cursor Movement (Index Finger Tracking)
             if pointer_data:
                 target_x = max(config.MOUSE_MARGIN, min(self.screen_w - config.MOUSE_MARGIN, pointer_data["x"] * self.screen_w))
                 target_y = max(config.MOUSE_MARGIN, min(self.screen_h - config.MOUSE_MARGIN, pointer_data["y"] * self.screen_h))
@@ -109,7 +85,7 @@ class GestureEngine:
 
                 pyautogui.moveTo(int(self.os_cursor_x), int(self.os_cursor_y))
 
-            # 2. Pinch Dragging
+            # 2. Pinch Dragging (Thumb + Index Touch & Hold)
             if is_pinch and not self.is_pinching:
                 self.is_pinching = True
                 pyautogui.mouseDown()
@@ -117,14 +93,15 @@ class GestureEngine:
                 self.is_pinching = False
                 pyautogui.mouseUp()
 
-            # 3. Eye Wink Click Actions
-            if action_type == "left_click":
+            # 3. Hand Gesture Actions
+            if action_type == "left_click" or action_type == "pinch_click":
                 pyautogui.click(button='left')
-            elif action_type == "right_click":
+            elif action_type == "right_click" or action_type == "peace_click":
                 pyautogui.click(button='right')
-            elif action_type == "both_eyes_closed":
-                # Toggle mouse control on/off
+            elif action_type == "toggle_control" or action_type == "toggle_mouse":
+                # Toggle mouse control on/off via Fist gesture
                 self.mouse_enabled = not self.mouse_enabled
 
         except Exception as e:
             print(f"PyAutoGUI error: {e}")
+

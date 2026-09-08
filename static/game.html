@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 GESTURE FRUIT - Hand + Eye Interactive Game</title>
+    <title>🎮 GESTURE FRUIT - 100% Hand Gesture Interactive Game</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body class="game-page">
     <div id="game-container">
@@ -83,16 +82,8 @@
             </div>
             <div class="gesture-status">
                 <div class="status-row">
-                    <span class="status-lbl">HAND</span>
+                    <span class="status-lbl">HAND GESTURE</span>
                     <span id="status-hand" class="status-tag tag-pointing">☝ POINTING</span>
-                </div>
-                <div class="status-row">
-                    <span class="status-lbl">LEFT EYE</span>
-                    <span id="status-left-eye" class="status-tag tag-open">👁️ OPEN</span>
-                </div>
-                <div class="status-row">
-                    <span class="status-lbl">RIGHT EYE</span>
-                    <span id="status-right-eye" class="status-tag tag-open">👁️ OPEN</span>
                 </div>
                 <div class="status-row">
                     <span class="status-lbl">ACTION</span>
@@ -106,7 +97,7 @@
             <div class="modal-card">
                 <div class="modal-icon">🍉</div>
                 <h1 class="modal-title">GESTURE FRUIT</h1>
-                <p class="modal-subtitle">LEVEL 1: SLOW & EASY FLOATY FRUITS</p>
+                <p class="modal-subtitle">100% HAND-CONTROLLED FRUIT SLICER</p>
                 
                 <div class="controls-grid">
                     <div class="control-card">
@@ -120,14 +111,14 @@
                         <div class="ctrl-desc">Slice fruits in any direction</div>
                     </div>
                     <div class="control-card">
-                        <div class="ctrl-icon">👁️ (L)</div>
-                        <div class="ctrl-title">LEFT EYE WINK</div>
-                        <div class="ctrl-desc">Close left eye (>300ms) to Left Click / Select</div>
+                        <div class="ctrl-icon">👌</div>
+                        <div class="ctrl-title">PINCH (THUMB + INDEX)</div>
+                        <div class="ctrl-desc">Click & Select UI buttons or Trigger slash</div>
                     </div>
                     <div class="control-card">
-                        <div class="ctrl-icon">👁️ (R)</div>
-                        <div class="ctrl-title">RIGHT EYE WINK</div>
-                        <div class="ctrl-desc">Close right eye (>300ms) for Special Action</div>
+                        <div class="ctrl-icon">✊</div>
+                        <div class="ctrl-title">MAKE A FIST</div>
+                        <div class="ctrl-desc">Pause / Resume Game instantly</div>
                     </div>
                 </div>
 
@@ -145,7 +136,7 @@
             <div class="modal-card mini-card">
                 <div class="modal-icon">⏸️</div>
                 <h2 class="modal-title">GAME PAUSED</h2>
-                <p class="modal-subtitle">Close left eye to continue or select options below</p>
+                <p class="modal-subtitle">Make a Fist ✊ or Pinch / Click Resume below</p>
                 
                 <div class="modal-actions">
                     <button id="btn-resume" class="btn-primary gesture-btn">▶️ RESUME</button>

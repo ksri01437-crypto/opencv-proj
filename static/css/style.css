@@ -443,12 +443,15 @@ body, html {
 .status-lbl { color: #7b85a2; }
 .status-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; }
 .tag-pointing { background: rgba(0, 255, 204, 0.15); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.4); }
+.tag-pinch { background: rgba(255, 0, 255, 0.2); color: #ff00ff; border: 1px solid rgba(255, 0, 255, 0.5); }
+.tag-peace { background: rgba(0, 255, 204, 0.2); color: #00ffcc; border: 1px solid rgba(0, 255, 204, 0.5); }
 .tag-swipe { background: rgba(255, 204, 0, 0.2); color: #ffcc00; border: 1px solid rgba(255, 204, 0, 0.5); }
 .tag-fist { background: rgba(255, 0, 102, 0.2); color: #ff0066; border: 1px solid rgba(255, 0, 102, 0.5); }
 .tag-open { background: rgba(0, 255, 102, 0.1); color: #00ff66; }
 .tag-closed { background: rgba(255, 0, 102, 0.25); color: #ff3366; }
 .tag-idle { background: rgba(255, 255, 255, 0.08); color: #a0aabf; }
 .tag-action { background: rgba(0, 153, 255, 0.25); color: #33ccff; border: 1px solid rgba(0, 153, 255, 0.5); }
+
 
 /* MODAL OVERLAYS */
 .modal-overlay {

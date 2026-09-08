@@ -52,57 +52,22 @@ mouse_manager = ConnectionManager("MOUSE")
 game_gesture_engine = GestureEngine(mode="game")
 mouse_gesture_engine = GestureEngine(mode="mouse")
 
+# Camera capture on backend is optional / on-demand so it doesn't lock the Windows webcam device
 camera_running = False
+cap = None
 
 async def webcam_worker():
-    global camera_running
-    camera_running = True
-    logger.info("Initializing OpenCV VideoCapture(0)...")
-
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture(1)
-
-    if not cap.isOpened():
-        logger.warning("Could not open OpenCV VideoCapture. Client fallback mode available.")
-        camera_running = False
-        return
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cap.set(cv2.CAP_PROP_FPS, 30)
-
-    try:
-        while camera_running:
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                await asyncio.sleep(0.03)
-                continue
-
-            # Send to Game Clients if active
-            if len(game_manager.active_connections) > 0:
-                ann_frame_game, g_data_game = game_gesture_engine.process_frame(frame.copy(), mode="game")
-                _, buffer = cv2.imencode('.jpg', ann_frame_game, [cv2.IMWRITE_JPEG_QUALITY, 65])
-                g_data_game["frame"] = f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}"
-                await game_manager.broadcast(g_data_game)
-
-            # Send to Mouse Clients if active
-            if len(mouse_manager.active_connections) > 0:
-                ann_frame_mouse, g_data_mouse = mouse_gesture_engine.process_frame(frame.copy(), mode="mouse")
-                _, buffer = cv2.imencode('.jpg', ann_frame_mouse, [cv2.IMWRITE_JPEG_QUALITY, 65])
-                g_data_mouse["frame"] = f"data:image/jpeg;base64,{base64.b64encode(buffer).decode('utf-8')}"
-                await mouse_manager.broadcast(g_data_mouse)
-
-            await asyncio.sleep(0.02)
-    except Exception as e:
-        logger.error(f"Error in webcam worker loop: {e}")
-    finally:
-        cap.release()
-        camera_running = False
+    """
+    Optional backend camera worker. Only runs if client explicitly connects in backend-capture mode,
+    leaving the camera device free for the browser client MediaPipe.
+    """
+    global camera_running, cap
+    logger.info("Backend camera worker standby. Camera released for browser client.")
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(webcam_worker())
+    logger.info("FastAPI Server started. Browser-based MediaPipe is active.")
+
 
 # ROUTING
 @app.get("/")

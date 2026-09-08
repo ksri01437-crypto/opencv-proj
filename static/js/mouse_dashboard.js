@@ -1,11 +1,11 @@
-// Real Computer Mouse Control Dashboard Controller
+// Real Computer Mouse Control Dashboard Controller (100% Hand-Controlled)
 class MouseDashboardController {
     constructor() {
         this.feedImg = document.getElementById('webcam-feed');
         this.telPos = document.getElementById('tel-cursor-pos');
         this.telHand = document.getElementById('tel-hand-status');
-        this.telLeftEye = document.getElementById('tel-left-eye');
-        this.telRightEye = document.getElementById('tel-right-eye');
+        this.telLeftClick = document.getElementById('tel-left-click');
+        this.telRightClick = document.getElementById('tel-right-click');
         this.telAction = document.getElementById('tel-action');
         this.toggleBtn = document.getElementById('toggle-mouse-btn');
         this.cameraToggleBtn = document.getElementById('camera-toggle-btn');
@@ -89,6 +89,14 @@ class MouseDashboardController {
     }
 
     handleGestureData(data) {
+        // Handle Fist toggle
+        if (data.action === 'toggle_control' || data.gesture === 'fist') {
+            if (data.action === 'toggle_control') {
+                this.mouseEnabled = !this.mouseEnabled;
+                this.updateToggleUI();
+            }
+        }
+
         // Forward client MediaPipe data over WebSocket for PyAutoGUI execution
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             data.mode = 'mouse';
@@ -108,44 +116,71 @@ class MouseDashboardController {
     }
 
     updateTelemetry(data) {
-        if (data.pointer) {
+        if (data.pointer && this.telPos) {
             const screenX = Math.round(data.pointer.x * window.screen.width);
             const screenY = Math.round(data.pointer.y * window.screen.height);
             this.telPos.innerText = `X: ${screenX} | Y: ${screenY}`;
         }
 
-        if (data.gesture === 'pinch') {
-            this.telHand.innerText = '👌 PINCH DRAGGING';
-        } else if (data.pointer) {
-            this.telHand.innerText = '☝ MOVING OS CURSOR';
-        } else {
-            this.telHand.innerText = 'NO HAND';
+        if (this.telHand) {
+            if (data.gesture === 'pinch') {
+                this.telHand.innerText = '👌 PINCH DRAGGING';
+                this.telHand.style.color = '#ff00ff';
+            } else if (data.gesture === 'peace') {
+                this.telHand.innerText = '✌️ PEACE (RIGHT CLICK)';
+                this.telHand.style.color = '#00ffcc';
+            } else if (data.gesture === 'fist') {
+                this.telHand.innerText = '✊ FIST (TOGGLE MOUSE)';
+                this.telHand.style.color = '#ffcc00';
+            } else if (data.gesture === 'open_palm') {
+                this.telHand.innerText = '🖐️ OPEN PALM';
+                this.telHand.style.color = '#00ff66';
+            } else if (data.pointer) {
+                this.telHand.innerText = '☝ MOVING OS CURSOR';
+                this.telHand.style.color = '#00ffcc';
+            } else {
+                this.telHand.innerText = 'NO HAND DETECTED';
+                this.telHand.style.color = '#8a93b0';
+            }
         }
 
-        if (data.left_eye === 'closed') {
-            this.telLeftEye.innerText = '👁️ CLOSED (WINK)';
-            this.telLeftEye.style.color = '#ff0066';
-        } else {
-            this.telLeftEye.innerText = '👁️ OPEN';
-            this.telLeftEye.style.color = '#00ff66';
+        // Pinch Left Click Status
+        if (this.telLeftClick) {
+            if (data.gesture === 'pinch' || data.action === 'left_click') {
+                this.telLeftClick.innerText = '👌 ACTIVE (PINCH)';
+                this.telLeftClick.style.color = '#ff00ff';
+            } else {
+                this.telLeftClick.innerText = 'READY (PINCH)';
+                this.telLeftClick.style.color = '#00ff66';
+            }
         }
 
-        if (data.right_eye === 'closed') {
-            this.telRightEye.innerText = '👁️ CLOSED (WINK)';
-            this.telRightEye.style.color = '#ff0066';
-        } else {
-            this.telRightEye.innerText = '👁️ OPEN';
-            this.telRightEye.style.color = '#00ff66';
+        // Peace Right Click Status
+        if (this.telRightClick) {
+            if (data.gesture === 'peace' || data.action === 'right_click') {
+                this.telRightClick.innerText = '✌️ ACTIVE (PEACE)';
+                this.telRightClick.style.color = '#00ffcc';
+            } else {
+                this.telRightClick.innerText = 'READY (PEACE SIGN)';
+                this.telRightClick.style.color = '#00ff66';
+            }
         }
 
-        if (data.action) {
-            this.telAction.innerText = data.action.toUpperCase();
-            this.telAction.style.background = 'rgba(0, 255, 204, 0.2)';
-            this.telAction.style.color = '#00ffcc';
-        } else {
-            this.telAction.innerText = 'IDLE';
-            this.telAction.style.background = 'rgba(255, 255, 255, 0.08)';
-            this.telAction.style.color = '#a0aabf';
+        // Action Status
+        if (this.telAction) {
+            if (data.action) {
+                this.telAction.innerText = data.action.replace('_', ' ').toUpperCase();
+                this.telAction.style.background = 'rgba(0, 255, 204, 0.2)';
+                this.telAction.style.color = '#00ffcc';
+            } else if (data.is_pinch) {
+                this.telAction.innerText = 'DRAG & DROP';
+                this.telAction.style.background = 'rgba(255, 0, 255, 0.2)';
+                this.telAction.style.color = '#ff00ff';
+            } else {
+                this.telAction.innerText = 'IDLE';
+                this.telAction.style.background = 'rgba(255, 255, 255, 0.08)';
+                this.telAction.style.color = '#a0aabf';
+            }
         }
     }
 }

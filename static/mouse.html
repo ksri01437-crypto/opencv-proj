@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🖱️ GESTURE MOUSE - Real OS Mouse Control</title>
+    <title>🖱️ GESTURE MOUSE - 100% Hand-Controlled OS Mouse</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body class="mouse-page">
     <div class="mouse-dashboard">
@@ -49,7 +48,7 @@
             <!-- RIGHT PANEL: GESTURE STATUS & LIVE METRICS -->
             <section class="dash-card status-card">
                 <div class="card-header">
-                    <h3>📊 LIVE GESTURE TELEMETRY</h3>
+                    <h3>📊 LIVE HAND TELEMETRY</h3>
                 </div>
 
                 <div class="telemetry-grid">
@@ -59,15 +58,15 @@
                     </div>
                     <div class="tel-item">
                         <span class="tel-lbl">HAND GESTURE</span>
-                        <span id="tel-hand-status" class="tel-val highlight">☝ MOVING CURSOR</span>
+                        <span id="tel-hand-status" class="tel-val highlight">☝ MOVING OS CURSOR</span>
                     </div>
                     <div class="tel-item">
-                        <span class="tel-lbl">LEFT EYE WINK</span>
-                        <span id="tel-left-eye" class="tel-val">👁️ OPEN</span>
+                        <span class="tel-lbl">LEFT CLICK / DRAG</span>
+                        <span id="tel-left-click" class="tel-val">READY (PINCH)</span>
                     </div>
                     <div class="tel-item">
-                        <span class="tel-lbl">RIGHT EYE WINK</span>
-                        <span id="tel-right-eye" class="tel-val">👁️ OPEN</span>
+                        <span class="tel-lbl">RIGHT CLICK</span>
+                        <span id="tel-right-click" class="tel-val">READY (PEACE SIGN)</span>
                     </div>
                     <div class="tel-item">
                         <span class="tel-lbl">SYSTEM ACTION</span>
@@ -76,13 +75,13 @@
                 </div>
 
                 <div class="guide-box">
-                    <h4>💡 GESTURE REFERENCE GUIDE</h4>
+                    <h4>💡 100% HAND GESTURE REFERENCE GUIDE</h4>
                     <ul>
                         <li><strong>☝ Index Finger Pointing:</strong> Moves real OS laptop mouse cursor across screen</li>
-                        <li><strong>👁️ Left Eye Wink (>280ms):</strong> Triggers real OS Left Click</li>
-                        <li><strong>👁️ Right Eye Wink (>280ms):</strong> Triggers real OS Right Click</li>
-                        <li><strong>👌 Pinch Finger:</strong> Holds Left Mouse Down (Drag & Drop)</li>
-                        <li><strong>😑 Both Eyes Closed:</strong> Toggles Mouse Control ON/OFF</li>
+                        <li><strong>👌 Index + Thumb Pinch:</strong> Triggers real OS Left Click (Hold to Drag & Drop)</li>
+                        <li><strong>✌️ Peace Sign (2 Fingers):</strong> Triggers real OS Right Click</li>
+                        <li><strong>✊ Make a Fist:</strong> Toggles Mouse Control ON / OFF</li>
+                        <li><strong>🖐️ Open Palm:</strong> Neutral Navigation / Hover</li>
                     </ul>
                 </div>
             </section>
