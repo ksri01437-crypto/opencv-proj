@@ -78,9 +78,15 @@ async def get_home():
 async def get_game():
     return FileResponse(os.path.join(static_dir, "game.html"))
 
+@app.get("/cargame")
+@app.get("/car")
+async def get_cargame():
+    return FileResponse(os.path.join(static_dir, "cargame.html"))
+
 @app.get("/mouse")
 async def get_mouse():
     return FileResponse(os.path.join(static_dir, "mouse.html"))
+
 
 @app.get("/api/status")
 async def get_status():

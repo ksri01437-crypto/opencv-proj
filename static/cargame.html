@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏎️ F1 GESTURE RACING - Hand-Controlled 3-Lane Formula Racing</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- MediaPipe Hands CDN (Reused cleanly) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body class="cargame-page">
+    <div id="cargame-container">
+        <!-- TOP F1 TELEMETRY HUD BAR -->
+        <header id="hud" class="f1-hud">
+            <div class="hud-brand">
+                <a href="/" class="back-link" title="Return to Home">🏠 HOME</a>
+                <span class="hud-logo">🏎️</span>
+                <span class="hud-title">F1 GESTURE GP</span>
+            </div>
+            
+            <div class="hud-stats">
+                <div class="stat-box speed-box">
+                    <span class="stat-label">SPEED</span>
+                    <span id="speed-val" class="stat-value highlight-speed">180 KM/H</span>
+                </div>
+
+                <div class="stat-box gear-box">
+                    <span class="stat-label">TRANSMISSION</span>
+                    <span id="gear-val" class="stat-value">GEAR 4</span>
+                </div>
+
+                <div class="stat-box">
+                    <span class="stat-label">SCORE</span>
+                    <span id="score-val" class="stat-value">0</span>
+                </div>
+                
+                <div class="stat-box">
+                    <span class="stat-label">BEST</span>
+                    <span id="best-val" class="stat-value">0</span>
+                </div>
+
+                <div class="stat-box">
+                    <span class="stat-label">DISTANCE</span>
+                    <span id="distance-val" class="stat-value">0.0 KM</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- STEERING ZONE INDICATOR HUD -->
+        <div id="steering-hud">
+            <div id="indicator-left" class="lane-indicator">
+                <span class="lane-arrow">◀</span>
+                <span class="lane-text">HAND LEFT</span>
+            </div>
+            <div id="indicator-center" class="lane-indicator active">
+                <span class="lane-arrow">▲</span>
+                <span class="lane-text">CENTER LANE</span>
+            </div>
+            <div id="indicator-right" class="lane-indicator">
+                <span class="lane-arrow">▶</span>
+                <span class="lane-text">HAND RIGHT</span>
+            </div>
+        </div>
+
+        <!-- MAIN 3-LANE RACING CANVAS -->
+        <canvas id="racing-canvas"></canvas>
+
+        <!-- FLOATING BOTTOM-RIGHT CAMERA PREVIEW (Reusing MediaPipe cleanly) -->
+        <div id="camera-panel" class="bottom-right-panel">
+            <div class="camera-header">
+                <span class="live-badge"><span class="pulse-dot">●</span> CAMERA</span>
+                <button id="camera-toggle-btn" class="cam-toggle-btn active">
+                    <span class="pulse-dot green">●</span> CAM: ON
+                </button>
+            </div>
+            <div class="camera-view">
+                <video id="webcam-video" autoplay playsinline muted></video>
+                <canvas id="camera-overlay-canvas"></canvas>
+            </div>
+            <div class="gesture-status">
+                <div class="status-row">
+                    <span class="status-lbl">STEERING</span>
+                    <span id="status-steer" class="status-tag tag-pointing">HAND TRACKING</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">PAUSE GESTURE</span>
+                    <span class="status-tag tag-fist">✊ MAKE FIST</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- START RACE MODAL -->
+        <div id="start-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-icon">🏎️</div>
+                <h1 class="modal-title">F1 GESTURE RACING</h1>
+                <p class="modal-subtitle">HIGH-SPEED 3-LANE HAND-CONTROLLED FORMULA GP</p>
+                
+                <div class="controls-grid">
+                    <div class="control-card">
+                        <div class="ctrl-icon">⬅️</div>
+                        <div class="ctrl-title">HAND TO THE LEFT</div>
+                        <div class="ctrl-desc">Steer your F1 car into the Left Lane</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">⬆️</div>
+                        <div class="ctrl-title">HAND IN CENTER</div>
+                        <div class="ctrl-desc">Hold position in the Center Lane</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">➡️</div>
+                        <div class="ctrl-title">HAND TO THE RIGHT</div>
+                        <div class="ctrl-desc">Steer your F1 car into the Right Lane</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">💥</div>
+                        <div class="ctrl-title">AVOID ENEMY CARS</div>
+                        <div class="ctrl-desc">Speed rises up to 360 KM/H! Collision = Game Over</div>
+                    </div>
+                </div>
+
+                <div class="start-btn-wrapper">
+                    <button id="btn-start-race" class="btn-primary f1-btn">
+                        <span class="btn-icon">🏁</span> START RACE
+                    </button>
+                    <a href="/" class="btn-secondary">🏠 MAIN MENU</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAUSE MODAL -->
+        <div id="pause-modal" class="modal-overlay hidden">
+            <div class="modal-card mini-card">
+                <div class="modal-icon">⏸️</div>
+                <h2 class="modal-title">RACE PAUSED</h2>
+                <p class="modal-subtitle">Make a Fist ✊ or click Resume below</p>
+                
+                <div class="modal-actions">
+                    <button id="btn-resume-race" class="btn-primary f1-btn">▶️ RESUME</button>
+                    <a href="/" class="btn-secondary">🏠 MAIN MENU</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME OVER CRASH MODAL -->
+        <div id="game-over-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-icon">💥</div>
+                <h1 class="modal-title crash-title">CRASH! GAME OVER</h1>
+                
+                <div class="game-over-stats">
+                    <div class="go-stat">
+                        <span class="go-label">FINAL SCORE</span>
+                        <span id="go-score" class="go-val highlight">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">BEST SCORE</span>
+                        <span id="go-best" class="go-val">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">TOP SPEED</span>
+                        <span id="go-speed" class="go-val highlight-speed">180 KM/H</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">CARS OVERTAKEN</span>
+                        <span id="go-cars" class="go-val">0</span>
+                    </div>
+                    <div class="go-stat">
+                        <span class="go-label">DISTANCE</span>
+                        <span id="go-distance" class="go-val">0.0 KM</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="btn-restart-race" class="btn-primary f1-btn">🔄 RESTART RACE</button>
+                    <a href="/" class="btn-secondary">🏠 MAIN MENU</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reused MediaPipe Engine + F1 Game Engine -->
+    <script src="/static/js/client_mediapipe.js"></script>
+    <script src="/static/js/cargame.js"></script>
+</body>
+</html>
