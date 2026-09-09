@@ -11,6 +11,7 @@ class UIController {
         this.cameraToggleBtn = document.getElementById('camera-toggle-btn');
 
         this.pointerPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        this.lastPointerPos = null;
         this.hoveredElement = null;
         this.hoverStartTime = null;
         this.hoverDurationNeeded = 1200; // ms for auto hover-click fallback
@@ -25,6 +26,7 @@ class UIController {
     }
 
     initButtons() {
+<<<<<<< Updated upstream
         const startBtn = document.getElementById('btn-start');
         if (startBtn) {
             startBtn.addEventListener('click', async () => {
@@ -46,35 +48,47 @@ class UIController {
                 }
             });
         }
+=======
+        const bindBtn = (id, handler) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', handler);
+        };
 
-        const restartPauseBtn = document.getElementById('btn-restart-pause');
-        if (restartPauseBtn) {
-            restartPauseBtn.addEventListener('click', () => {
-                document.getElementById('pause-modal').classList.add('hidden');
-                game.startGame();
-            });
-        }
+        bindBtn('btn-start', () => {
+            const startModal = document.getElementById('start-modal');
+            if (startModal) startModal.classList.add('hidden');
+            if (this.virtualPointer) this.virtualPointer.classList.remove('hidden');
+            if (typeof game !== 'undefined') game.startGame();
+        });
+>>>>>>> Stashed changes
 
-        const playAgainBtn = document.getElementById('btn-play-again');
-        if (playAgainBtn) {
-            playAgainBtn.addEventListener('click', () => {
-                document.getElementById('game-over-modal').classList.add('hidden');
-                game.startGame();
-            });
-        }
+        bindBtn('btn-resume', () => {
+            if (typeof game !== 'undefined') game.resumeGame();
+        });
 
-        const homeBtn = document.getElementById('btn-home');
-        if (homeBtn) {
-            homeBtn.addEventListener('click', () => {
-                document.getElementById('game-over-modal').classList.add('hidden');
-                document.getElementById('start-modal').classList.remove('hidden');
-                game.state = 'START';
-            });
-        }
+        bindBtn('btn-restart-pause', () => {
+            const pauseModal = document.getElementById('pause-modal');
+            if (pauseModal) pauseModal.classList.add('hidden');
+            if (typeof game !== 'undefined') game.startGame();
+        });
+
+        bindBtn('btn-play-again', () => {
+            const goModal = document.getElementById('game-over-modal');
+            if (goModal) goModal.classList.add('hidden');
+            if (typeof game !== 'undefined') game.startGame();
+        });
+
+        bindBtn('btn-home', () => {
+            const goModal = document.getElementById('game-over-modal');
+            if (goModal) goModal.classList.add('hidden');
+            const startModal = document.getElementById('start-modal');
+            if (startModal) startModal.classList.remove('hidden');
+            if (typeof game !== 'undefined') game.state = 'START';
+        });
 
         if (this.cameraToggleBtn) {
             this.cameraToggleBtn.addEventListener('click', async () => {
-                if (typeof clientMP !== 'undefined') {
+                if (typeof clientMP !== 'undefined' && clientMP.toggleCamera) {
                     const active = await clientMP.toggleCamera();
                     this.updateCameraToggleUI(active);
                 }
@@ -104,39 +118,45 @@ class UIController {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/game`;
 
-        this.ws = new WebSocket(wsUrl);
+        try {
+            this.ws = new WebSocket(wsUrl);
 
-        this.ws.onopen = () => {
-            console.log("WebSocket connected to /ws/game.");
-            this.isConnected = true;
-        };
+            this.ws.onopen = () => {
+                console.log("WebSocket connected to backend GestureEngine (/ws/game).");
+                this.isConnected = true;
+            };
 
-        this.ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                this.handleGestureData(data);
-            } catch (err) {
-                console.error("Error parsing WS gesture data:", err);
-            }
-        };
+            this.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.handleGestureData(data);
+                } catch (err) {
+                    console.error("Error parsing WS gesture data:", err);
+                }
+            };
 
-        this.ws.onclose = () => {
-            this.isConnected = false;
-            setTimeout(() => this.initWebSocket(), 3000);
-        };
+            this.ws.onclose = () => {
+                this.isConnected = false;
+                setTimeout(() => this.initWebSocket(), 3000);
+            };
 
-        this.ws.onerror = (err) => {
-            console.error("WebSocket error:", err);
-        };
+            this.ws.onerror = (err) => {
+                console.warn("WebSocket status note:", err);
+            };
+        } catch (e) {
+            console.warn("WebSocket connection init error:", e);
+        }
     }
 
     handleGestureData(data) {
+        if (!data) return;
+
         // 1. Update Camera Video Feed if available
         if (data.frame && this.webcamFeed) {
             this.webcamFeed.src = data.frame;
         }
 
-        // 2. Update Virtual Hand Pointer Position
+        // 2. Update Virtual Hand Pointer Position & Continuous Slicing
         if (data.pointer) {
             const px = data.pointer.x * window.innerWidth;
             const py = data.pointer.y * window.innerHeight;
@@ -148,21 +168,30 @@ class UIController {
                 this.virtualPointer.classList.remove('hidden');
             }
 
+            // Continuous hand movement blade slicing
+            if (this.lastPointerPos && typeof game !== 'undefined' && game.state === 'PLAYING') {
+                const dist = Math.hypot(px - this.lastPointerPos.x, py - this.lastPointerPos.y);
+                if (dist >= 4 && data.gesture !== 'fist') {
+                    game.processSwipeLine(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
+                }
+            }
+            this.lastPointerPos = { x: px, y: py };
+
             this.checkHoverInteraction(px, py);
+        } else {
+            this.lastPointerPos = null;
         }
 
-        // 3. Process Hand Swipe Line
-        if (data.gesture === 'swipe' && data.swipe_line) {
+        // 3. Process Fast Hand Swipe Gesture Line
+        if (data.gesture === 'swipe' && data.swipe_line && typeof game !== 'undefined') {
             const x1 = data.swipe_line.x1 * window.innerWidth;
             const y1 = data.swipe_line.y1 * window.innerHeight;
             const x2 = data.swipe_line.x2 * window.innerWidth;
             const y2 = data.swipe_line.y2 * window.innerHeight;
-            if (typeof game !== 'undefined') {
-                game.processSwipeLine(x1, y1, x2, y2);
-            }
+            game.processSwipeLine(x1, y1, x2, y2);
         }
 
-        // 4. Hand Action Triggering
+        // 4. Hand Action Triggering (Pinch / Left Click / Peace / Fist)
         if (data.action === 'left_click' || data.gesture === 'pinch') {
             this.triggerVirtualClick();
         } else if (data.action === 'right_click' || data.gesture === 'peace') {
@@ -247,30 +276,32 @@ class UIController {
     }
 
     updateStatusBadges(data) {
-        if (!this.statusHand) return;
+        if (!data) return;
 
         // Hand Gesture Badge
-        if (data.gesture === 'swipe') {
-            this.statusHand.className = 'status-tag tag-swipe';
-            this.statusHand.innerText = `⚡ SWIPING (${data.direction || 'SWIPE'})`;
-        } else if (data.gesture === 'pinch') {
-            this.statusHand.className = 'status-tag tag-pinch';
-            this.statusHand.innerText = '👌 PINCH (CLICK)';
-        } else if (data.gesture === 'peace') {
-            this.statusHand.className = 'status-tag tag-peace';
-            this.statusHand.innerText = '✌️ PEACE (RIGHT)';
-        } else if (data.gesture === 'fist') {
-            this.statusHand.className = 'status-tag tag-fist';
-            this.statusHand.innerText = '✊ FIST (PAUSE)';
-        } else if (data.gesture === 'open_palm') {
-            this.statusHand.className = 'status-tag tag-open';
-            this.statusHand.innerText = '🖐️ OPEN PALM';
-        } else if (data.pointer) {
-            this.statusHand.className = 'status-tag tag-pointing';
-            this.statusHand.innerText = '☝ POINTING';
-        } else {
-            this.statusHand.className = 'status-tag tag-idle';
-            this.statusHand.innerText = 'NO HAND';
+        if (this.statusHand) {
+            if (data.gesture === 'swipe') {
+                this.statusHand.className = 'status-tag tag-swipe';
+                this.statusHand.innerText = `⚡ SWIPING (${data.direction || 'SWIPE'})`;
+            } else if (data.gesture === 'pinch') {
+                this.statusHand.className = 'status-tag tag-pinch';
+                this.statusHand.innerText = '👌 PINCH (CLICK)';
+            } else if (data.gesture === 'peace') {
+                this.statusHand.className = 'status-tag tag-peace';
+                this.statusHand.innerText = '✌️ PEACE (RIGHT)';
+            } else if (data.gesture === 'fist') {
+                this.statusHand.className = 'status-tag tag-fist';
+                this.statusHand.innerText = '✊ FIST (PAUSE)';
+            } else if (data.gesture === 'open_palm') {
+                this.statusHand.className = 'status-tag tag-open';
+                this.statusHand.innerText = '🖐️ OPEN PALM';
+            } else if (data.pointer) {
+                this.statusHand.className = 'status-tag tag-pointing';
+                this.statusHand.innerText = '☝ POINTING';
+            } else {
+                this.statusHand.className = 'status-tag tag-idle';
+                this.statusHand.innerText = 'NO HAND';
+            }
         }
 
         // Action Badge
@@ -292,20 +323,22 @@ class UIController {
         let isMouseDown = false;
         let lastMousePos = null;
 
-        window.addEventListener('mousemove', (e) => {
-            if (!this.isConnected || (this.virtualPointer && !this.virtualPointer.offsetParent)) {
-                this.pointerPos = { x: e.clientX, y: e.clientY };
-                if (this.virtualPointer) {
-                    this.virtualPointer.style.left = `${e.clientX}px`;
-                    this.virtualPointer.style.top = `${e.clientY}px`;
-                    this.virtualPointer.classList.remove('hidden');
-                }
-
-                if (isMouseDown && lastMousePos && typeof game !== 'undefined') {
-                    game.processSwipeLine(lastMousePos.x, lastMousePos.y, e.clientX, e.clientY);
-                }
-                lastMousePos = { x: e.clientX, y: e.clientY };
+        const handleMove = (clientX, clientY) => {
+            this.pointerPos = { x: clientX, y: clientY };
+            if (this.virtualPointer) {
+                this.virtualPointer.style.left = `${clientX}px`;
+                this.virtualPointer.style.top = `${clientY}px`;
+                this.virtualPointer.classList.remove('hidden');
             }
+
+            if (isMouseDown && lastMousePos && typeof game !== 'undefined') {
+                game.processSwipeLine(lastMousePos.x, lastMousePos.y, clientX, clientY);
+            }
+            lastMousePos = { x: clientX, y: clientY };
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            handleMove(e.clientX, e.clientY);
         });
 
         window.addEventListener('mousedown', (e) => {
@@ -314,6 +347,26 @@ class UIController {
         });
 
         window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // Touch support for mobile / laptops with touch
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches[0]) {
+                const t = e.touches[0];
+                handleMove(t.clientX, t.clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches[0]) {
+                isMouseDown = true;
+                const t = e.touches[0];
+                lastMousePos = { x: t.clientX, y: t.clientY };
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
             isMouseDown = false;
         });
     }

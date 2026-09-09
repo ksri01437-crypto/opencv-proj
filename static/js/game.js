@@ -89,7 +89,8 @@ class FruitGame {
         this.spawnTimer = 0;
 
         this.updateHUD();
-        sounds.playClickSound();
+        try { if (typeof sounds !== 'undefined') sounds.playClickSound(); } catch (e) {}
+        this.spawnFruitBatch();
     }
 
     pauseGame() {

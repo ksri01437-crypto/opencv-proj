@@ -4,9 +4,10 @@
 A full-stack computer vision web platform powered by **Python, OpenCV, MediaPipe Hands, FastAPI, WebSockets, HTML5 Canvas, and PyAutoGUI**.
 
 The platform is **100% hand-gesture controlled** (no eye winks or facial tracking required):
-1. **🎮 GESTURE FRUIT GAME (`/game`)**: Pure browser-based fruit slicing game. 100% isolated inside browser canvas (Zero PyAutoGUI or OS mouse interaction). Aim with your index finger, slice with fast swipes, click UI buttons with pinches, and pause with a fist.
-2. **🏎️ F1 GESTURE RACING (`/cargame`)**: High-speed 3-lane Formula 1 racing game. Steer your car left/right or hold center using hand position. Avoid enemy cars, accelerate up to 360 KM/H with dynamic engine audio and crash physics!
-3. **🖱️ REAL COMPUTER MOUSE CONTROL (`/mouse`)**: Direct laptop OS cursor control using PyAutoGUI. Move real OS mouse with index finger, left click / drag with pinch, right click with peace sign (2 fingers), and toggle mouse control with a fist.
+1. **🎮 GESTURE FRUIT GAME (`/game`)**: Pure browser-based fruit slicing game. 100% isolated inside browser canvas. Aim with index finger, slice with hand movements, click UI buttons with pinches, and pause with a fist.
+2. **🏎️ F1 GESTURE RACING (`/cargame`)**: High-speed 3-lane Formula 1 racing game. Steer car left/right or center using hand position. Avoid enemy cars, accelerate up to 360 KM/H with dynamic engine audio and crash physics!
+3. **🌸 FLOWER MAGIC CANVAS (`/draw`)**: Black screen gesture drawing canvas! Draw anything (e.g. "hii", shapes, art) with your index finger using blooming flowers & leafy vines. Pick from 10 flower styles (Sakura, Rose, Sunflower, Rainbow), adjust brush size, save PNG artwork, or clear canvas with a fist!
+4. **🖱️ REAL COMPUTER MOUSE CONTROL (`/mouse`)**: Direct laptop OS cursor control using PyAutoGUI. Move real OS mouse with index finger, left click / drag with pinch, right click with peace sign (2 fingers), and toggle mouse control with a fist.
 
 ---
 
@@ -14,15 +15,15 @@ The platform is **100% hand-gesture controlled** (no eye winks or facial trackin
 
 | Action | Hand Gesture | Mode |
 |---|---|---|
-| **Aim / Move Cursor** | ☝ Point Index Finger | Fruit Game & Real Mouse |
+| **Draw Flowers / Aim** | ☝ Point Index Finger | Flower Canvas, Fruit Game & Real Mouse |
 | **Steer Left** | ⬅️ Hand to the Left | F1 Racing |
 | **Center Lane** | ⬆️ Hand in Center | F1 Racing |
 | **Steer Right** | ➡️ Hand to the Right | F1 Racing |
 | **Slice Fruits** | ✋ Fast Hand Swipe | Fruit Game |
-| **Left Click / Select** | 👌 Pinch (Thumb + Index Tip) | Fruit Game & Real Mouse |
+| **Select Flower / Left Click** | 👌 Pinch (Thumb + Index Tip) | Flower Canvas, Fruit Game & Real Mouse |
 | **Drag & Drop** | 👌 Hold Pinch | Real Mouse |
 | **Right Click** | ✌️ Peace Sign (2 Fingers Extended) | Real Mouse |
-| **Pause / Toggle Control** | ✊ Make a Fist | Fruit Game & Real Mouse |
+| **Clear Canvas / Pause / Toggle** | ✊ Make a Fist | Flower Canvas, Fruit Game & Real Mouse |
 | **Neutral Navigation** | 🖐️ Open Palm | All Modes |
 
 

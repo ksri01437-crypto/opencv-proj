@@ -83,6 +83,11 @@ async def get_game():
 async def get_cargame():
     return FileResponse(os.path.join(static_dir, "cargame.html"))
 
+@app.get("/draw")
+@app.get("/flower")
+async def get_draw():
+    return FileResponse(os.path.join(static_dir, "draw.html"))
+
 @app.get("/mouse")
 async def get_mouse():
     return FileResponse(os.path.join(static_dir, "mouse.html"))

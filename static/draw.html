@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 FLOWER CANVAS - Magic Hand-Drawn Flower Art</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body class="draw-page">
+    <div id="draw-container">
+        <!-- TOP HUD & TOOLBAR -->
+        <header id="draw-hud">
+            <div class="hud-brand">
+                <a href="/" class="back-link" title="Return to Home">🏠 HOME</a>
+                <span class="hud-logo">🌸</span>
+                <span class="hud-title">FLOWER CANVAS</span>
+            </div>
+
+            <!-- FLOWER BRUSH SELECTOR -->
+            <div class="flower-toolbar">
+                <span class="toolbar-label">FLOWER:</span>
+                <div class="flower-palette">
+                    <button class="flower-btn active" data-flower="🌸" title="Cherry Blossom (Sakura)">🌸</button>
+                    <button class="flower-btn" data-flower="🌹" title="Red Rose">🌹</button>
+                    <button class="flower-btn" data-flower="🌻" title="Sunflower">🌻</button>
+                    <button class="flower-btn" data-flower="🌺" title="Hibiscus">🌺</button>
+                    <button class="flower-btn" data-flower="🌷" title="Tulip">🌷</button>
+                    <button class="flower-btn" data-flower="🌼" title="Daisy">🌼</button>
+                    <button class="flower-btn" data-flower="🏵️" title="Rosette">🏵️</button>
+                    <button class="flower-btn" data-flower="💐" title="Bouquet">💐</button>
+                    <button class="flower-btn" data-flower="🌈" title="Rainbow Mix">🌈</button>
+                    <button class="flower-btn" data-flower="✨" title="Magic Stars">✨</button>
+                </div>
+            </div>
+
+            <!-- ACTION CONTROLS -->
+            <div class="draw-actions">
+                <div class="size-selector">
+                    <span class="size-lbl">SIZE</span>
+                    <button class="size-btn" data-size="30">S</button>
+                    <button class="size-btn active" data-size="48">M</button>
+                    <button class="size-btn" data-size="64">L</button>
+                </div>
+
+                <button id="btn-clear" class="hud-action-btn btn-clear-canvas gesture-btn" title="Clear Canvas (Fist ✊)">
+                    <span>🧹 CLEAR</span>
+                </button>
+                <button id="btn-save" class="hud-action-btn btn-save-art gesture-btn" title="Save Artwork PNG">
+                    <span>📸 SAVE ART</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN BLACK SCREEN CANVAS -->
+        <canvas id="flower-canvas"></canvas>
+
+        <!-- VIRTUAL HAND POINTER CURSOR -->
+        <div id="virtual-pointer" class="hidden">
+            <div class="pointer-ring flower-ring"></div>
+            <div class="pointer-dot"></div>
+            <div class="pointer-aura flower-aura"></div>
+            <svg class="pointer-svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" stroke="rgba(255, 105, 180, 0.9)" stroke-width="4" fill="none" stroke-dasharray="276" stroke-dashoffset="276" id="hover-progress-circle"/>
+            </svg>
+        </div>
+
+        <!-- FLOATING BOTTOM-RIGHT CAMERA PREVIEW -->
+        <div id="camera-panel" class="bottom-right-panel">
+            <div class="camera-header">
+                <span class="live-badge"><span class="pulse-dot">●</span> CAMERA</span>
+                <button id="camera-toggle-btn" class="cam-toggle-btn active">
+                    <span class="pulse-dot green">●</span> CAM: ON
+                </button>
+            </div>
+            <div class="camera-view">
+                <video id="webcam-video" autoplay playsinline muted></video>
+                <canvas id="camera-overlay-canvas"></canvas>
+            </div>
+            <div class="gesture-status">
+                <div class="status-row">
+                    <span class="status-lbl">HAND</span>
+                    <span id="status-hand" class="status-tag tag-pointing">☝ POINTING</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">BRUSH</span>
+                    <span id="status-brush" class="status-tag tag-open">🌸 SAKURA</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-lbl">ACTION</span>
+                    <span id="status-action" class="status-tag tag-idle">DRAWING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- START INSTRUCTIONS MODAL -->
+        <div id="start-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-icon">🌸</div>
+                <h1 class="modal-title">FLOWER MAGIC CANVAS</h1>
+                <p class="modal-subtitle">DRAW ANYTHING ON THE BLACK SCREEN USING FLOWERS & VINES!</p>
+
+                <div class="controls-grid">
+                    <div class="control-card">
+                        <div class="ctrl-icon">☝</div>
+                        <div class="ctrl-title">POINT INDEX FINGER</div>
+                        <div class="ctrl-desc">Move finger across black screen to draw letters like "hii" or shapes in flowers</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">🌸</div>
+                        <div class="ctrl-title">BLOOMING FLOWERS</div>
+                        <div class="ctrl-desc">Every movement sprouts blooming flowers and leafy vines along your path</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">👌</div>
+                        <div class="ctrl-title">PINCH (THUMB + INDEX)</div>
+                        <div class="ctrl-desc">Pinch to select flower types or click canvas controls</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">✊</div>
+                        <div class="ctrl-title">CLOSE WRIST (ERASE)</div>
+                        <div class="ctrl-desc">Close your wrist (make a fist) to erase flowers under your pointer. Open hand draws flowers without erasing!</div>
+                    </div>
+                </div>
+
+                <div class="start-btn-wrapper">
+                    <button id="btn-start-draw" class="btn-primary gesture-btn">
+                        <span class="btn-icon">🎨</span> START DRAWING
+                    </button>
+                    <a href="/" class="btn-secondary">🏠 MAIN MENU</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sound.js"></script>
+    <script src="/static/js/client_mediapipe.js"></script>
+    <script src="/static/js/draw.js"></script>
+</body>
+</html>
