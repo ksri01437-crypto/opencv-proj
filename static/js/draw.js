@@ -7,16 +7,25 @@ class FlowerCanvasEngine {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
 
-        // Drawing State
+        // Drawing State & Modes
         this.selectedFlower = '🌸';
-        this.brushSize = 48;
+        this.brushSize = 44;
+        this.drawMode = 'pinch'; // 'pinch' (hover to aim, pinch to write) or 'freehand' (continuous)
+        this.isEraserActive = false;
         this.lastPointerPos = null;
         this.isDrawing = false;
         this.rainbowIndex = 0;
         this.rainbowPalette = ['🌸', '🌹', '🌻', '🌺', '🌷', '🌼', '🏵️', '💐'];
 
+        // Spacing tracker for clean, elegant flower blooming
+        this.distSinceLastFlower = 0;
+
+        // Undo History Stack
+        this.history = [];
+        this.currentStroke = null;
+
         // Entities
-        this.strokes = [];   // Array of { x1, y1, x2, y2, color, width }
+        this.strokes = [];   // Array of { x1, y1, x2, y2, color, glow, width }
         this.flowers = [];   // Array of blooming flower objects
         this.particles = []; // Sparkle/petal floating particles
         this.dissolveParticles = []; // Clear canvas dissolve effect particles
@@ -82,6 +91,61 @@ class FlowerCanvasEngine {
             });
         }
 
+        // Draw Mode Selector Buttons (Pinch vs Freehand)
+        const pinchModeBtn = document.getElementById('mode-pinch');
+        const freehandModeBtn = document.getElementById('mode-freehand');
+
+        if (pinchModeBtn && freehandModeBtn) {
+            pinchModeBtn.addEventListener('click', () => {
+                this.drawMode = 'pinch';
+                this.isEraserActive = false;
+                pinchModeBtn.classList.add('active');
+                freehandModeBtn.classList.remove('active');
+                const eraserBtn = document.getElementById('btn-eraser');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+                if (this.statusAction) this.statusAction.innerText = 'PINCH TO DRAW';
+            });
+
+            freehandModeBtn.addEventListener('click', () => {
+                this.drawMode = 'freehand';
+                this.isEraserActive = false;
+                freehandModeBtn.classList.add('active');
+                pinchModeBtn.classList.remove('active');
+                const eraserBtn = document.getElementById('btn-eraser');
+                if (eraserBtn) eraserBtn.classList.remove('active');
+                if (this.statusAction) this.statusAction.innerText = 'FLOW DRAWING';
+            });
+        }
+
+        // Undo Button
+        const undoBtn = document.getElementById('btn-undo');
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => this.undo());
+        }
+
+        // Eraser Toggle Button
+        const eraserBtn = document.getElementById('btn-eraser');
+        if (eraserBtn) {
+            eraserBtn.addEventListener('click', () => {
+                this.isEraserActive = !this.isEraserActive;
+                eraserBtn.classList.toggle('active', this.isEraserActive);
+                if (this.statusAction) {
+                    this.statusAction.innerText = this.isEraserActive ? 'ERASER ACTIVE' : (this.drawMode === 'pinch' ? 'PINCH TO DRAW' : 'DRAWING');
+                }
+                if (this.virtualPointer) {
+                    const ring = this.virtualPointer.querySelector('.pointer-ring');
+                    if (ring) ring.classList.toggle('eraser-ring', this.isEraserActive);
+                }
+            });
+        }
+
+        // Keyboard Shortcut: Z or Ctrl+Z for Undo
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'z' || e.key === 'Z') {
+                this.undo();
+            }
+        });
+
         // Flower Type Selector Buttons
         const flowerBtns = document.querySelectorAll('.flower-btn');
         flowerBtns.forEach(btn => {
@@ -89,6 +153,10 @@ class FlowerCanvasEngine {
                 flowerBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.selectedFlower = btn.getAttribute('data-flower') || '🌸';
+                if (this.isEraserActive && eraserBtn) {
+                    this.isEraserActive = false;
+                    eraserBtn.classList.remove('active');
+                }
                 if (this.statusBrush) {
                     this.statusBrush.innerText = `${this.selectedFlower} BRUSH`;
                 }
@@ -101,7 +169,7 @@ class FlowerCanvasEngine {
             btn.addEventListener('click', () => {
                 sizeBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.brushSize = parseInt(btn.getAttribute('data-size') || '48', 10);
+                this.brushSize = parseInt(btn.getAttribute('data-size') || '44', 10);
             });
         });
 
@@ -165,87 +233,144 @@ class FlowerCanvasEngine {
                 this.virtualPointer.style.left = `${px}px`;
                 this.virtualPointer.style.top = `${py}px`;
                 this.virtualPointer.classList.remove('hidden');
-            }
 
-            // IF USER CLOSES WRIST ('fist' gesture) -> ONLY THEN ERASE FLOWERS
-            if (data.gesture === 'fist') {
-                this.eraseFlowersAt(px, py, Math.max(40, this.brushSize * 1.2));
-            } else {
-                // IF NOT CLOSED WRIST -> DO NOT ERASE, DRAW BLOOMING FLOWERS
-                if (this.lastPointerPos) {
-                    const dist = Math.hypot(px - this.lastPointerPos.x, py - this.lastPointerPos.y);
-                    if (dist >= 8) {
-                        this.addFlowerSegment(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
-                    }
+                const ring = this.virtualPointer.querySelector('.pointer-ring');
+                if (ring) {
+                    ring.classList.toggle('eraser-ring', data.gesture === 'fist' || this.isEraserActive);
                 }
             }
-            this.lastPointerPos = { x: px, y: py };
+
+            const shouldErase = data.gesture === 'fist' || this.isEraserActive;
+            const isPinching = data.gesture === 'pinch' || data.is_pinch || data.action === 'left_click';
+            const shouldDraw = !shouldErase && (this.drawMode === 'freehand' || isPinching);
+
+            if (shouldErase) {
+                this.endStroke();
+                this.eraseFlowersAt(px, py, Math.max(45, this.brushSize * 1.3));
+                this.lastPointerPos = { x: px, y: py };
+            } else if (shouldDraw) {
+                if (this.lastPointerPos) {
+                    this.continueStroke(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
+                } else {
+                    this.startStroke(px, py);
+                }
+                this.lastPointerPos = { x: px, y: py };
+            } else {
+                // Free Pointer Hover / Aim Mode (not drawing)
+                this.endStroke();
+                this.lastPointerPos = { x: px, y: py };
+            }
 
             this.checkHoverInteraction(px, py);
         } else {
+            this.endStroke();
             this.lastPointerPos = null;
-            // Full clear if closed wrist fist is detected without active pointer target
-            if (data.gesture === 'fist') {
-                this.clearCanvasWithBurst();
+        }
+
+        // 3. Peace sign gesture ✌️ -> Quick Undo!
+        if (data.gesture === 'peace') {
+            const now = Date.now();
+            if (now - this.lastSoundTime > 400) {
+                this.undo();
+                this.lastSoundTime = now;
             }
         }
 
-        // 4. Pinch Gesture -> Select / Click
-        if (data.gesture === 'pinch' || data.action === 'left_click') {
-            this.triggerVirtualClick();
-        }
-
-        // 5. Update Telemetry Badges
+        // 4. Update Telemetry Badges
         this.updateStatusBadges(data);
     }
 
-    addFlowerSegment(x1, y1, x2, y2) {
-        // Draw organic green vine stroke
-        this.strokes.push({
+    startStroke(x, y) {
+        this.currentStroke = { vines: [], flowers: [] };
+        this.distSinceLastFlower = 0;
+        this.lastPointerPos = { x, y };
+        // Plant initial flower at stroke start
+        this.spawnFlowerAt(x, y);
+    }
+
+    continueStroke(x1, y1, x2, y2) {
+        if (!this.currentStroke) {
+            this.startStroke(x1, y1);
+        }
+
+        const dist = Math.hypot(x2 - x1, y2 - y1);
+        if (dist < 3) return;
+
+        // 1. Draw smooth bioluminescent vine segment
+        const vine = {
             x1, y1, x2, y2,
             color: '#10b981',
             glow: '#059669',
-            width: Math.max(3, this.brushSize * 0.12)
-        });
+            width: Math.max(2.5, this.brushSize * 0.12)
+        };
+        this.strokes.push(vine);
+        if (this.currentStroke) {
+            this.currentStroke.vines.push(vine);
+        }
 
-        // Determine flower emoji
+        // 2. Add leaves / flower with SMART DISTANCE SPACING
+        // Prevents ugly dense pileups of 60 flowers in 100px!
+        this.distSinceLastFlower += dist;
+        const targetSpacing = Math.max(42, this.brushSize * 1.15);
+
+        if (this.distSinceLastFlower >= targetSpacing) {
+            this.distSinceLastFlower = 0;
+            this.spawnFlowerAt(x2, y2);
+        } else if (this.distSinceLastFlower >= targetSpacing * 0.5 && Math.random() < 0.25) {
+            // Sprout a natural green leaf along the vine
+            this.spawnLeafAt(x2, y2);
+        }
+
+        // Magic sparkle particles
+        if (Math.random() < 0.35) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 25 + Math.random() * 80;
+            this.particles.push({
+                x: x2, y: y2,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 1.5 + Math.random() * 3,
+                color: Math.random() > 0.5 ? '#ff99dd' : '#77ffff',
+                alpha: 1.0,
+                decay: 1.5
+            });
+        }
+    }
+
+    endStroke() {
+        if (this.currentStroke && (this.currentStroke.vines.length > 0 || this.currentStroke.flowers.length > 0)) {
+            this.history.push(this.currentStroke);
+            if (this.history.length > 60) this.history.shift();
+            this.currentStroke = null;
+        }
+        this.distSinceLastFlower = 0;
+    }
+
+    spawnFlowerAt(x, y) {
         let currentEmoji = this.selectedFlower;
         if (currentEmoji === '🌈') {
             currentEmoji = this.rainbowPalette[this.rainbowIndex % this.rainbowPalette.length];
             this.rainbowIndex++;
         }
 
-        // Spawn blooming flower
-        const rot = (Math.random() - 0.5) * 0.6;
-        const sizeVar = this.brushSize * (0.8 + Math.random() * 0.4);
+        const rot = (Math.random() - 0.5) * 0.5;
+        const sizeVar = this.brushSize * (0.85 + Math.random() * 0.3);
 
-        this.flowers.push({
-            x: x2,
-            y: y2,
+        const flower = {
+            x, y,
             emoji: currentEmoji,
             size: sizeVar,
             rotation: rot,
-            scale: 0.1, // Grows from 0.1 to 1.0 (blooming animation)
+            scale: 0.1,
             targetScale: 1.0,
             alpha: 1.0
-        });
+        };
 
-        // Create magic sparkle particles
-        for (let i = 0; i < 4; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 40 + Math.random() * 120;
-            this.particles.push({
-                x: x2, y: y2,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 2 + Math.random() * 4,
-                color: Math.random() > 0.5 ? '#ff99dd' : '#77ffff',
-                alpha: 1.0,
-                decay: 1.5
-            });
+        this.flowers.push(flower);
+        if (this.currentStroke) {
+            this.currentStroke.flowers.push(flower);
         }
 
-        // Play slice/bloom chime sound
         const now = Date.now();
         if (now - this.lastSoundTime > 120) {
             this.lastSoundTime = now;
@@ -253,15 +378,69 @@ class FlowerCanvasEngine {
         }
     }
 
+    spawnLeafAt(x, y) {
+        const leafEmoji = Math.random() > 0.5 ? '🌿' : '🍃';
+        const flower = {
+            x, y,
+            emoji: leafEmoji,
+            size: this.brushSize * 0.65,
+            rotation: (Math.random() - 0.5) * 1.2,
+            scale: 0.2,
+            targetScale: 0.85,
+            alpha: 0.95
+        };
+
+        this.flowers.push(flower);
+        if (this.currentStroke) {
+            this.currentStroke.flowers.push(flower);
+        }
+    }
+
+    undo() {
+        if (this.history.length === 0) return;
+        const lastStroke = this.history.pop();
+        if (!lastStroke) return;
+
+        // Remove vines
+        if (lastStroke.vines && lastStroke.vines.length > 0) {
+            const vineSet = new Set(lastStroke.vines);
+            this.strokes = this.strokes.filter(v => !vineSet.has(v));
+        }
+
+        // Remove flowers with dissolve effect
+        if (lastStroke.flowers && lastStroke.flowers.length > 0) {
+            const flowerSet = new Set(lastStroke.flowers);
+            for (let f of lastStroke.flowers) {
+                for (let k = 0; k < 2; k++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 40 + Math.random() * 90;
+                    this.dissolveParticles.push({
+                        x: f.x, y: f.y,
+                        emoji: f.emoji,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: f.size * 0.55,
+                        alpha: 1.0,
+                        decay: 1.8,
+                        rotation: f.rotation,
+                        rotSpeed: (Math.random() - 0.5) * 3
+                    });
+                }
+            }
+            this.flowers = this.flowers.filter(f => !flowerSet.has(f));
+        }
+
+        try { if (typeof sounds !== 'undefined') sounds.playPopSound(); } catch (e) {}
+    }
+
     eraseFlowersAt(x, y, radius = 60) {
         let erasedAny = false;
 
-        // 1. Remove flowers within radius of closed wrist (x, y)
+        // 1. Remove flowers within radius
         for (let i = this.flowers.length - 1; i >= 0; i--) {
             const f = this.flowers[i];
             const dist = Math.hypot(f.x - x, f.y - y);
             if (dist <= radius) {
-                // Spawn small dissolve burst particle for visual feedback
                 for (let k = 0; k < 2; k++) {
                     const angle = Math.random() * Math.PI * 2;
                     const speed = 40 + Math.random() * 100;
@@ -282,7 +461,7 @@ class FlowerCanvasEngine {
             }
         }
 
-        // 2. Remove vine strokes near closed wrist (x, y)
+        // 2. Remove vine strokes near eraser
         for (let i = this.strokes.length - 1; i >= 0; i--) {
             const s = this.strokes[i];
             const d1 = Math.hypot(s.x1 - x, s.y1 - y);
@@ -309,7 +488,6 @@ class FlowerCanvasEngine {
     clearCanvasWithBurst() {
         if (this.flowers.length === 0 && this.strokes.length === 0) return;
 
-        // Create burst dissolve particles from existing flowers
         for (let f of this.flowers) {
             for (let i = 0; i < 3; i++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -330,6 +508,8 @@ class FlowerCanvasEngine {
 
         this.strokes = [];
         this.flowers = [];
+        this.history = [];
+        this.currentStroke = null;
 
         try { if (typeof sounds !== 'undefined') sounds.playBombSound(); } catch (e) {}
     }
@@ -462,25 +642,28 @@ class FlowerCanvasEngine {
         });
 
         window.addEventListener('mousemove', (e) => {
-            if (isMouseDown) {
-                const px = e.clientX;
-                const py = e.clientY;
-                if (this.virtualPointer) {
-                    this.virtualPointer.style.left = `${px}px`;
-                    this.virtualPointer.style.top = `${py}px`;
-                    this.virtualPointer.classList.remove('hidden');
-                }
+            const px = e.clientX;
+            const py = e.clientY;
 
-                if (isRightClick || e.shiftKey) {
-                    // Closed Wrist / Right-Click / Shift simulation -> ERASE FLOWERS ONLY
-                    this.eraseFlowersAt(px, py, Math.max(40, this.brushSize * 1.2));
+            if (this.virtualPointer) {
+                this.virtualPointer.style.left = `${px}px`;
+                this.virtualPointer.style.top = `${py}px`;
+                this.virtualPointer.classList.remove('hidden');
+
+                const ring = this.virtualPointer.querySelector('.pointer-ring');
+                if (ring) {
+                    ring.classList.toggle('eraser-ring', isRightClick || this.isEraserActive);
+                }
+            }
+
+            if (isMouseDown) {
+                if (isRightClick || e.shiftKey || this.isEraserActive) {
+                    this.eraseFlowersAt(px, py, Math.max(45, this.brushSize * 1.3));
                 } else {
-                    // Open hand / Normal drag -> DO NOT ERASE, DRAW FLOWERS
                     if (this.lastPointerPos) {
-                        const dist = Math.hypot(px - this.lastPointerPos.x, py - this.lastPointerPos.y);
-                        if (dist >= 8) {
-                            this.addFlowerSegment(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
-                        }
+                        this.continueStroke(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
+                    } else {
+                        this.startStroke(px, py);
                     }
                 }
                 this.lastPointerPos = { x: px, y: py };
@@ -488,18 +671,22 @@ class FlowerCanvasEngine {
         });
 
         window.addEventListener('mousedown', (e) => {
-            // Avoid drawing when clicking top toolbar buttons
             if (e.clientY < 75) return;
             isMouseDown = true;
             isRightClick = (e.button === 2);
             this.lastPointerPos = { x: e.clientX, y: e.clientY };
 
-            if (isRightClick || e.shiftKey) {
-                this.eraseFlowersAt(e.clientX, e.clientY, Math.max(40, this.brushSize * 1.2));
+            if (isRightClick || e.shiftKey || this.isEraserActive) {
+                this.eraseFlowersAt(e.clientX, e.clientY, Math.max(45, this.brushSize * 1.3));
+            } else {
+                this.startStroke(e.clientX, e.clientY);
             }
         });
 
         window.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                this.endStroke();
+            }
             isMouseDown = false;
             isRightClick = false;
             this.lastPointerPos = null;
@@ -509,10 +696,13 @@ class FlowerCanvasEngine {
         window.addEventListener('touchmove', (e) => {
             if (e.touches && e.touches[0]) {
                 const t = e.touches[0];
-                if (this.lastPointerPos) {
-                    const dist = Math.hypot(t.clientX - this.lastPointerPos.x, t.clientY - this.lastPointerPos.y);
-                    if (dist >= 8) {
-                        this.addFlowerSegment(this.lastPointerPos.x, this.lastPointerPos.y, t.clientX, t.clientY);
+                if (this.isEraserActive) {
+                    this.eraseFlowersAt(t.clientX, t.clientY, Math.max(45, this.brushSize * 1.3));
+                } else {
+                    if (this.lastPointerPos) {
+                        this.continueStroke(this.lastPointerPos.x, this.lastPointerPos.y, t.clientX, t.clientY);
+                    } else {
+                        this.startStroke(t.clientX, t.clientY);
                     }
                 }
                 this.lastPointerPos = { x: t.clientX, y: t.clientY };
@@ -522,11 +712,20 @@ class FlowerCanvasEngine {
         window.addEventListener('touchstart', (e) => {
             if (e.touches && e.touches[0] && e.touches[0].clientY > 75) {
                 isMouseDown = true;
-                this.lastPointerPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                const t = e.touches[0];
+                this.lastPointerPos = { x: t.clientX, y: t.clientY };
+                if (this.isEraserActive) {
+                    this.eraseFlowersAt(t.clientX, t.clientY, Math.max(45, this.brushSize * 1.3));
+                } else {
+                    this.startStroke(t.clientX, t.clientY);
+                }
             }
         }, { passive: true });
 
         window.addEventListener('touchend', () => {
+            if (isMouseDown) {
+                this.endStroke();
+            }
             isMouseDown = false;
             this.lastPointerPos = null;
         });

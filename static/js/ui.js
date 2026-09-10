@@ -26,44 +26,26 @@ class UIController {
     }
 
     initButtons() {
-<<<<<<< Updated upstream
-        const startBtn = document.getElementById('btn-start');
-        if (startBtn) {
-            startBtn.addEventListener('click', async () => {
-                document.getElementById('start-modal').classList.add('hidden');
-                if (this.virtualPointer) this.virtualPointer.classList.remove('hidden');
-                game.startGame();
-                if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
-                    await clientMP.startCamera();
-                }
-            });
-        }
-
-        const resumeBtn = document.getElementById('btn-resume');
-        if (resumeBtn) {
-            resumeBtn.addEventListener('click', async () => {
-                game.resumeGame();
-                if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
-                    await clientMP.startCamera();
-                }
-            });
-        }
-=======
         const bindBtn = (id, handler) => {
             const btn = document.getElementById(id);
             if (btn) btn.addEventListener('click', handler);
         };
 
-        bindBtn('btn-start', () => {
+        bindBtn('btn-start', async () => {
             const startModal = document.getElementById('start-modal');
             if (startModal) startModal.classList.add('hidden');
             if (this.virtualPointer) this.virtualPointer.classList.remove('hidden');
             if (typeof game !== 'undefined') game.startGame();
+            if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
+                await clientMP.startCamera();
+            }
         });
->>>>>>> Stashed changes
 
-        bindBtn('btn-resume', () => {
+        bindBtn('btn-resume', async () => {
             if (typeof game !== 'undefined') game.resumeGame();
+            if (typeof clientMP !== 'undefined' && !clientMP.isCameraActive) {
+                await clientMP.startCamera();
+            }
         });
 
         bindBtn('btn-restart-pause', () => {
@@ -171,9 +153,11 @@ class UIController {
             // Continuous hand movement blade slicing
             if (this.lastPointerPos && typeof game !== 'undefined' && game.state === 'PLAYING') {
                 const dist = Math.hypot(px - this.lastPointerPos.x, py - this.lastPointerPos.y);
-                if (dist >= 4 && data.gesture !== 'fist') {
+                if (dist >= 2 && data.gesture !== 'fist') {
                     game.processSwipeLine(this.lastPointerPos.x, this.lastPointerPos.y, px, py);
                 }
+            } else if (typeof game !== 'undefined' && game.state === 'PLAYING' && data.gesture !== 'fist') {
+                game.processSwipeLine(px - 20, py - 20, px + 20, py + 20);
             }
             this.lastPointerPos = { x: px, y: py };
 
@@ -331,8 +315,11 @@ class UIController {
                 this.virtualPointer.classList.remove('hidden');
             }
 
-            if (isMouseDown && lastMousePos && typeof game !== 'undefined') {
-                game.processSwipeLine(lastMousePos.x, lastMousePos.y, clientX, clientY);
+            if (lastMousePos && typeof game !== 'undefined' && game.state === 'PLAYING') {
+                const dist = Math.hypot(clientX - lastMousePos.x, clientY - lastMousePos.y);
+                if (dist >= 3) {
+                    game.processSwipeLine(lastMousePos.x, lastMousePos.y, clientX, clientY);
+                }
             }
             lastMousePos = { x: clientX, y: clientY };
         };
@@ -344,6 +331,10 @@ class UIController {
         window.addEventListener('mousedown', (e) => {
             isMouseDown = true;
             lastMousePos = { x: e.clientX, y: e.clientY };
+            if (typeof game !== 'undefined' && game.state === 'PLAYING') {
+                game.processSwipeLine(e.clientX - 30, e.clientY - 30, e.clientX + 30, e.clientY + 30);
+                game.processSwipeLine(e.clientX - 30, e.clientY + 30, e.clientX + 30, e.clientY - 30);
+            }
         });
 
         window.addEventListener('mouseup', () => {
@@ -363,6 +354,9 @@ class UIController {
                 isMouseDown = true;
                 const t = e.touches[0];
                 lastMousePos = { x: t.clientX, y: t.clientY };
+                if (typeof game !== 'undefined' && game.state === 'PLAYING') {
+                    game.processSwipeLine(t.clientX - 30, t.clientY - 30, t.clientX + 30, t.clientY + 30);
+                }
             }
         }, { passive: true });
 

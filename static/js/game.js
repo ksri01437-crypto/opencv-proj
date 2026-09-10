@@ -64,7 +64,7 @@ class FruitGame {
         document.getElementById('combo-val').innerText = `🔥 x${Math.max(1, this.comboCount)}`;
         
         let hearts = '';
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
             hearts += i < this.lives ? '❤️' : '🖤';
         }
         document.getElementById('lives-val').innerText = hearts;
@@ -74,7 +74,7 @@ class FruitGame {
     startGame() {
         this.state = 'PLAYING';
         this.score = 0;
-        this.lives = 3;
+        this.lives = 5;
         this.slices = 0;
         this.maxCombo = 1;
         this.comboCount = 0;
@@ -143,35 +143,41 @@ class FruitGame {
     }
 
     spawnFruitBatch() {
-        // Level 1: 1 fruit, Level 2: 1-2 fruits, Level 3+: 1-3 fruits
-        const maxBatch = this.level === 1 ? 1 : (this.level === 2 ? 2 : 3);
+        // Level 1: 1-2 fruits, Level 2: 2-3 fruits, Level 3+: 2-4 fruits
+        const maxBatch = this.level === 1 ? 2 : (this.level === 2 ? 3 : 4);
         const count = Math.min(maxBatch, 1 + Math.floor(Math.random() * maxBatch));
 
         for (let i = 0; i < count; i++) {
             const fType = this.getRandomFruitType();
-            const margin = 140;
+            const margin = Math.max(70, this.canvas.width * 0.12);
             const x = margin + Math.random() * (this.canvas.width - margin * 2);
-            const y = this.canvas.height + 50;
+            const y = this.canvas.height + 25;
 
-            // Target central upper region of screen
-            const targetX = this.canvas.width * 0.3 + Math.random() * (this.canvas.width * 0.4);
-            const floatDurationSec = 2.4 + Math.random() * 0.8; // Takes ~2.4 to 3.2 seconds!
+            // Target peak: fruit should soar high into upper 16% to 38% of the screen
+            const peakY = this.canvas.height * (0.16 + Math.random() * 0.22);
+            const riseHeight = y - peakY;
 
-            // Initial Launch Velocities (pixels per second)
-            const vx = (targetX - x) / floatDurationSec;
-            
-            // Speed scaling based on level
-            const levelSpeedMult = this.level === 1 ? 0.55 : (this.level === 2 ? 0.78 : 1.05);
-            const vy = - (this.canvas.height * 0.72 + Math.random() * 120) * (levelSpeedMult / floatDurationSec);
-            const gravity = (this.canvas.height * 0.55) * (levelSpeedMult / (floatDurationSec * floatDurationSec));
+            // Float duration to peak: 1.25 to 1.55 seconds (soaring arc with floaty apex)
+            const tPeak = 1.25 + Math.random() * 0.3;
 
-            const rotSpeed = (Math.random() - 0.5) * 1.5; // radians per second
+            // Exact Newtonian physics:
+            // riseHeight = 0.5 * gravity * tPeak^2 => gravity = 2 * riseHeight / tPeak^2
+            const gravity = (2 * riseHeight) / (tPeak * tPeak);
+            // initial launch upward velocity:
+            const vy = - gravity * tPeak;
+
+            // Target central upper region
+            const targetX = this.canvas.width * 0.25 + Math.random() * (this.canvas.width * 0.5);
+            const vx = (targetX - x) / (tPeak * 1.5);
+
+            const rotSpeed = (Math.random() - 0.5) * 2.5;
 
             this.fruits.push({
                 ...fType,
                 id: Math.random().toString(),
                 x, y, vx, vy,
                 gravity,
+                hasEnteredScreen: false,
                 rotation: Math.random() * Math.PI * 2,
                 rotSpeed
             });
@@ -186,10 +192,13 @@ class FruitGame {
 
         for (let i = this.fruits.length - 1; i >= 0; i--) {
             const fruit = this.fruits[i];
-            const dist = this.distToSegment(fruit.x, fruit.y, x1, y1, x2, y2);
+            const distSeg = this.distToSegment(fruit.x, fruit.y, x1, y1, x2, y2);
+            const distPoint1 = Math.hypot(fruit.x - x1, fruit.y - y1);
+            const distPoint2 = Math.hypot(fruit.x - x2, fruit.y - y2);
+            const minDist = Math.min(distSeg, distPoint1, distPoint2);
 
-            // Generous collision tolerance (fruit.radius + 20px)
-            if (dist <= fruit.radius + 20) {
+            // Generous collision tolerance (fruit.radius + 35px)
+            if (minDist <= fruit.radius + 35) {
                 this.sliceFruit(i, x1, y1, x2, y2);
                 slicedInThisSwipe++;
             }
@@ -383,9 +392,16 @@ class FruitGame {
             f.vy += f.gravity * dt;
             f.rotation += f.rotSpeed * dt;
 
-            if (f.y > this.canvas.height + 80) {
+            // Mark fruit as visible once it enters above the bottom edge
+            if (f.y < this.canvas.height) {
+                f.hasEnteredScreen = true;
+            }
+
+            // Missed fruit fell off screen
+            if (f.y > this.canvas.height + 70 && f.vy > 0) {
                 this.fruits.splice(i, 1);
-                if (this.state === 'PLAYING' && !f.isBomb && !f.isGolden) {
+                // Only penalize if the fruit was actually launched high enough into view
+                if (this.state === 'PLAYING' && f.hasEnteredScreen && !f.isBomb && !f.isGolden) {
                     this.lives--;
                     this.comboCount = 0;
                     this.updateHUD();
@@ -431,7 +447,10 @@ class FruitGame {
         }
 
         const now = Date.now();
-        this.swipeTrail = this.swipeTrail.filter(t => now - t.time <= 180);
+        for (let t of this.swipeTrail) {
+            t.alpha = Math.max(0, 1.0 - (now - t.time) / 200);
+        }
+        this.swipeTrail = this.swipeTrail.filter(t => now - t.time <= 200);
     }
 
     draw() {

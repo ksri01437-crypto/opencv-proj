@@ -36,9 +36,18 @@ class F1RacingGame {
         this.bestScore = parseInt(localStorage.getItem('f1_racing_best') || '0', 10);
         this.distance = 0;
         this.carsOvertaken = 0;
-        this.baseSpeedKmh = 180;
-        this.currentSpeedKmh = 180;
-        this.maxSpeedKmh = 360;
+        this.baseSpeedKmh = 200;
+        this.currentSpeedKmh = 200;
+        this.maxSpeedKmh = 380;
+
+        // Shields & Escapes
+        this.shields = 3;
+        this.escapesCount = 0;
+        this.escapeMultiplier = 1;
+        this.escapeResetTimer = 0;
+        this.escapePopups = [];
+        this.nitroBoost = 0;
+        this.invulnerableTimer = 0;
 
         // 3-Lane Setup: 0 = Left, 1 = Center, 2 = Right
         this.currentLane = 1;
@@ -195,6 +204,60 @@ class F1RacingGame {
         noise.stop(this.audioCtx.currentTime + 0.6);
     }
 
+    playEscapeSound() {
+        if (!this.audioEnabled || !this.audioCtx) return;
+        try {
+            this.initAudio();
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(520, this.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1040, this.audioCtx.currentTime + 0.22);
+            gain.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.22);
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + 0.22);
+        } catch (e) {}
+    }
+
+    playShieldSound() {
+        if (!this.audioEnabled || !this.audioCtx) return;
+        try {
+            this.initAudio();
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(320, this.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, this.audioCtx.currentTime + 0.35);
+            gain.gain.setValueAtTime(0.35, this.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.35);
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + 0.35);
+        } catch (e) {}
+    }
+
+    playNitroSound() {
+        if (!this.audioEnabled || !this.audioCtx) return;
+        try {
+            this.initAudio();
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(280, this.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(700, this.audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.2, this.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            osc.start();
+            osc.stop(this.audioCtx.currentTime + 0.3);
+        } catch (e) {}
+    }
+
     // Keyboard Fallback
     initKeyboard() {
         window.addEventListener('keydown', (e) => {
@@ -203,8 +266,8 @@ class F1RacingGame {
                     this.setLane(Math.max(0, this.targetLane - 1));
                 } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
                     this.setLane(Math.min(2, this.targetLane + 1));
-                } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-                    this.setLane(1);
+                } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+                    this.triggerNitro();
                 } else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
                     this.togglePause();
                 }
@@ -214,16 +277,21 @@ class F1RacingGame {
         });
     }
 
+    triggerNitro() {
+        if (this.nitroBoost <= 0.2) {
+            this.nitroBoost = 1.6;
+            this.screenShake = 7;
+            this.playNitroSound();
+        }
+    }
+
     // Hand Gesture Processing from client_mediapipe.js
     handleHandGesture(data) {
         if (!data || !data.pointer) return;
 
-        // 3-Zone Hand Mapping
-        // Left: pointer.x < 0.38
-        // Center: 0.38 <= pointer.x <= 0.62
-        // Right: pointer.x > 0.62
         const px = data.pointer.x;
 
+        // Agile 3-zone lane snapping
         if (px < 0.38) {
             this.setLane(0);
             this.handZone = 'left';
@@ -233,6 +301,17 @@ class F1RacingGame {
         } else {
             this.setLane(1);
             this.handZone = 'center';
+        }
+
+        // Also blend with analog direct road position for smooth escape maneuvers
+        const roadLeft = (this.canvas.width - this.trackWidth) / 2;
+        const mappedX = roadLeft + Math.max(30, Math.min(this.trackWidth - 30, ((px - 0.2) / 0.6) * this.trackWidth));
+        // High responsiveness
+        this.car.targetX = mappedX;
+
+        // Nitro boost trigger via pinch or rapid gesture
+        if (data.gesture === 'pinch' || data.gesture === 'swipe') {
+            this.triggerNitro();
         }
 
         this.updateLaneHUD();
@@ -266,6 +345,13 @@ class F1RacingGame {
         this.distance = 0;
         this.carsOvertaken = 0;
         this.currentSpeedKmh = this.baseSpeedKmh;
+        this.shields = 3;
+        this.escapesCount = 0;
+        this.escapeMultiplier = 1;
+        this.escapeResetTimer = 0;
+        this.escapePopups = [];
+        this.nitroBoost = 0;
+        this.invulnerableTimer = 0;
         this.enemies = [];
         this.enemySpawnTimer = 0;
         this.particles = [];
@@ -276,7 +362,6 @@ class F1RacingGame {
         this.car.y = Math.max(120, this.canvas.height - 220);
         this.car.x = this.getLaneCenterX(1);
         this.car.tilt = 0;
-
 
         document.getElementById('start-modal').classList.add('hidden');
         document.getElementById('game-over-modal').classList.add('hidden');
@@ -332,6 +417,8 @@ class F1RacingGame {
             document.getElementById('go-best').innerText = this.bestScore;
             document.getElementById('go-speed').innerText = `${Math.round(this.currentSpeedKmh)} KM/H`;
             document.getElementById('go-cars').innerText = this.carsOvertaken;
+            const goEscapes = document.getElementById('go-escapes');
+            if (goEscapes) goEscapes.innerText = this.escapesCount;
             document.getElementById('go-distance').innerText = `${(this.distance / 1000).toFixed(1)} KM`;
             document.getElementById('game-over-modal').classList.remove('hidden');
         }, 600);
@@ -343,13 +430,24 @@ class F1RacingGame {
         const speedElem = document.getElementById('speed-val');
         const gearElem = document.getElementById('gear-val');
         const distanceElem = document.getElementById('distance-val');
+        const shieldElem = document.getElementById('shield-val');
+        const escapesElem = document.getElementById('escapes-val');
 
         if (scoreElem) scoreElem.innerText = this.score;
         if (bestElem) bestElem.innerText = this.bestScore;
         if (speedElem) speedElem.innerText = `${Math.round(this.currentSpeedKmh)} KM/H`;
 
+        if (shieldElem) {
+            let s = '';
+            for (let i = 0; i < 3; i++) s += i < this.shields ? '⚡' : '🖤';
+            shieldElem.innerText = s;
+        }
+
+        if (escapesElem) {
+            escapesElem.innerText = this.escapesCount;
+        }
+
         if (gearElem) {
-            // F1 8-Speed Gear Calculation
             const gear = Math.min(8, Math.max(1, Math.floor((this.currentSpeedKmh - 160) / 25) + 1));
             gearElem.innerText = `GEAR ${gear}`;
         }
@@ -387,15 +485,32 @@ class F1RacingGame {
     update(dt) {
         if (this.state !== 'PLAYING') return;
 
-        // Smooth Car Lane Interpolation
+        // Smooth Agile Car Interpolation (24 * dt)
         const dx = this.car.targetX - this.car.x;
-        this.car.x += dx * Math.min(1.0, 12 * dt);
+        this.car.x += dx * Math.min(1.0, 24 * dt);
 
-        // Calculate visual tilt based on turning speed
-        this.car.tilt = Math.max(-0.25, Math.min(0.25, (dx / this.laneWidth) * 0.4));
+        // Visual tilt based on steering speed
+        this.car.tilt = Math.max(-0.28, Math.min(0.28, (dx / this.laneWidth) * 0.45));
 
-        // Speed Progression (Gradually increase speed up to 360 km/h)
-        this.currentSpeedKmh = Math.min(this.maxSpeedKmh, this.baseSpeedKmh + (this.distance / 60));
+        // Timers
+        if (this.invulnerableTimer > 0) {
+            this.invulnerableTimer -= dt;
+        }
+
+        if (this.nitroBoost > 0) {
+            this.nitroBoost -= dt;
+        }
+
+        if (this.escapeResetTimer > 0) {
+            this.escapeResetTimer -= dt;
+            if (this.escapeResetTimer <= 0) {
+                this.escapeMultiplier = 1;
+            }
+        }
+
+        // Speed Progression (Nitro provides +65 KM/H surge)
+        const nitroBonus = this.nitroBoost > 0 ? 65 : 0;
+        this.currentSpeedKmh = Math.min(this.maxSpeedKmh + nitroBonus, this.baseSpeedKmh + (this.distance / 50) + nitroBonus);
         this.updateEngineSound();
 
         // Speed in pixels per second
@@ -404,11 +519,11 @@ class F1RacingGame {
 
         // Update Distance & Score
         this.distance += (this.currentSpeedKmh / 3.6) * dt;
-        this.score += Math.round(dt * (this.currentSpeedKmh / 10));
+        this.score += Math.round(dt * (this.currentSpeedKmh / 8));
 
         // Spawn Enemies
         this.enemySpawnTimer += dt;
-        const spawnInterval = Math.max(1.1, 2.2 - (this.currentSpeedKmh - 180) / 150);
+        const spawnInterval = Math.max(1.3, 2.4 - (this.currentSpeedKmh - 180) / 220);
         if (this.enemySpawnTimer >= spawnInterval) {
             this.spawnEnemy();
             this.enemySpawnTimer = 0;
@@ -417,14 +532,51 @@ class F1RacingGame {
         // Update Enemies
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            const relativeSpeed = roadSpeedPx * (1.0 - enemy.speedDelta * 0.35);
+            // BALANCED OBSTACLE SPEED: Traffic moves forward at realistic relative speed
+            const relativeSpeed = roadSpeedPx * (0.32 + enemy.speedDelta * 0.16);
             enemy.y += relativeSpeed * dt;
+
+            // GREAT ESCAPE / NEAR MISS DETECTION
+            const carTop = this.car.y;
+            const carBottom = this.car.y + this.car.height;
+            const enemyTop = enemy.y;
+            const enemyBottom = enemy.y + enemy.height;
+            const overlapY = carTop < enemyBottom && carBottom > enemyTop;
+            const lateralDist = Math.abs(this.car.x - enemy.x);
+            const minLateralDist = (this.car.width + enemy.width) / 2;
+
+            if (!enemy.escaped && !enemy.passed && overlapY) {
+                // Near-miss dodging within 38px of collision
+                if (lateralDist >= minLateralDist - 12 && lateralDist <= minLateralDist + 38) {
+                    enemy.escaped = true;
+                    this.escapesCount++;
+                    this.escapeMultiplier = Math.min(5, this.escapeMultiplier + 1);
+                    this.escapeResetTimer = 3.5;
+                    const bonusPts = 150 * this.escapeMultiplier;
+                    this.score += bonusPts;
+
+                    // Trigger Thrilling Escape Surge & Audio
+                    this.nitroBoost = Math.max(this.nitroBoost, 1.2);
+                    this.screenShake = 6;
+                    this.playEscapeSound();
+
+                    this.escapePopups.push({
+                        text: this.escapeMultiplier > 1 ? `⚡ GREAT ESCAPE x${this.escapeMultiplier}!` : '⚡ GREAT ESCAPE!',
+                        pts: `+${bonusPts}`,
+                        x: this.car.x,
+                        y: this.car.y - 45,
+                        alpha: 1.3,
+                        vy: -60,
+                        color: '#ffcc00'
+                    });
+                }
+            }
 
             // Overtake Detection & Bonus
             if (!enemy.passed && enemy.y > this.car.y + this.car.height / 2) {
                 enemy.passed = true;
                 this.carsOvertaken++;
-                this.score += 50; // Bonus points for clean overtake
+                this.score += 50;
                 this.playOvertakeSound();
             }
 
@@ -434,29 +586,66 @@ class F1RacingGame {
                 continue;
             }
 
-            // Collision Detection (Tight Bounding Box)
-            const padX = 12;
-            const padY = 14;
+            // Collision Detection
+            const padX = 14;
+            const padY = 16;
             const isColliding = (
                 Math.abs(this.car.x - enemy.x) < (this.car.width + enemy.width) / 2 - padX &&
                 Math.abs(this.car.y - enemy.y) < (this.car.height + enemy.height) / 2 - padY
             );
 
             if (isColliding) {
-                this.gameOver();
-                return;
+                if (this.invulnerableTimer > 0) {
+                    // Invulnerable, bypass
+                } else if (this.shields > 0) {
+                    // Shield saves player!
+                    this.shields--;
+                    this.invulnerableTimer = 1.6;
+                    this.screenShake = 20;
+                    this.playShieldSound();
+
+                    // Destroy enemy car with explosion
+                    for (let k = 0; k < 35; k++) {
+                        this.particles.push({
+                            x: enemy.x,
+                            y: enemy.y + 40,
+                            vx: (Math.random() - 0.5) * 18,
+                            vy: (Math.random() - 0.5) * 18,
+                            radius: 3 + Math.random() * 8,
+                            color: Math.random() > 0.4 ? '#00e5ff' : '#ffffff',
+                            life: 1.0,
+                            decay: 0.02
+                        });
+                    }
+                    this.enemies.splice(i, 1);
+
+                    this.escapePopups.push({
+                        text: `🛡️ SHIELD DEFLECTED! (${this.shields} LEFT)`,
+                        pts: 'NARROW ESCAPE!',
+                        x: this.car.x,
+                        y: this.car.y - 50,
+                        alpha: 1.5,
+                        vy: -40,
+                        color: '#00e5ff'
+                    });
+                    this.updateHUD();
+                } else {
+                    this.gameOver();
+                    return;
+                }
             }
         }
 
-        // Exhaust flame / sparks
-        if (Math.random() < 0.8) {
+        // Exhaust flame / sparks & Nitro Boost Thruster
+        const sparkCount = this.nitroBoost > 0 ? 3 : 1;
+        for (let s = 0; s < sparkCount; s++) {
             this.car.sparks.push({
                 x: this.car.x + (Math.random() - 0.5) * 16,
                 y: this.car.y + this.car.height - 10,
-                vx: (Math.random() - 0.5) * 3,
-                vy: 5 + Math.random() * 8,
-                radius: 2 + Math.random() * 3,
-                color: Math.random() > 0.4 ? '#00e5ff' : '#ffffff',
+                vx: (Math.random() - 0.5) * (this.nitroBoost > 0 ? 5 : 3),
+                vy: (this.nitroBoost > 0 ? 12 : 5) + Math.random() * 8,
+                radius: this.nitroBoost > 0 ? 4 + Math.random() * 4 : 2 + Math.random() * 3,
+                color: this.nitroBoost > 0 ? (Math.random() > 0.3 ? '#00ffff' : '#0077ff') : (Math.random() > 0.4 ? '#00e5ff' : '#ffffff'),
                 life: 1.0
             });
         }
@@ -466,8 +655,18 @@ class F1RacingGame {
             const sp = this.car.sparks[i];
             sp.x += sp.vx;
             sp.y += sp.vy;
-            sp.life -= dt * 6;
+            sp.life -= dt * (this.nitroBoost > 0 ? 4 : 6);
             if (sp.life <= 0) this.car.sparks.splice(i, 1);
+        }
+
+        // Update Escape Popups
+        for (let i = this.escapePopups.length - 1; i >= 0; i--) {
+            const ep = this.escapePopups[i];
+            ep.y += ep.vy * dt;
+            ep.alpha -= 0.65 * dt;
+            if (ep.alpha <= 0) {
+                this.escapePopups.splice(i, 1);
+            }
         }
 
         // Screen Shake decay
@@ -489,7 +688,7 @@ class F1RacingGame {
             ctx.translate(shakeX, shakeY);
         }
 
-        // 1. Background Grass / Outer Circuit
+        // 1. Background Outer Circuit
         ctx.fillStyle = '#0a0d14';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -502,17 +701,13 @@ class F1RacingGame {
         ctx.fillRect(roadLeft - 20, 0, 20, this.canvas.height);
         ctx.fillRect(roadRight, 0, 20, this.canvas.height);
 
-        // F1 Curbs (Red & White Alternating Stripes on road edges)
+        // F1 Curbs (Red & White Alternating Stripes)
         const curbWidth = 14;
         const curbSegHeight = 40;
-        const curbOffset = this.roadOffset % (curbSegHeight * 2);
-
         for (let y = -curbSegHeight * 2; y < this.canvas.height + curbSegHeight * 2; y += curbSegHeight) {
             const isRed = Math.floor((y + this.roadOffset) / curbSegHeight) % 2 === 0;
             ctx.fillStyle = isRed ? '#ff0033' : '#ffffff';
-            // Left Curb
             ctx.fillRect(roadLeft - curbWidth, y, curbWidth, curbSegHeight);
-            // Right Curb
             ctx.fillRect(roadRight, y, curbWidth, curbSegHeight);
         }
 
@@ -530,28 +725,26 @@ class F1RacingGame {
         ctx.lineTo(roadRight, this.canvas.height);
         ctx.stroke();
 
-        // 3. Dashed Lane Divider Lines (Between 3 Lanes)
+        // 3. Dashed Lane Divider Lines
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 4;
         ctx.setLineDash([35, 35]);
         ctx.lineDashOffset = -this.roadOffset;
 
         ctx.beginPath();
-        // Lane 0/1 divider
         ctx.moveTo(roadLeft + this.laneWidth, 0);
         ctx.lineTo(roadLeft + this.laneWidth, this.canvas.height);
-        // Lane 1/2 divider
         ctx.moveTo(roadLeft + this.laneWidth * 2, 0);
         ctx.lineTo(roadLeft + this.laneWidth * 2, this.canvas.height);
         ctx.stroke();
-        ctx.setLineDash([]); // Reset dash
+        ctx.setLineDash([]);
 
-        // 4. Speed Lines (High Speed Wind Effect)
-        if (this.currentSpeedKmh > 240) {
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.18)';
-            ctx.lineWidth = 1.5;
+        // 4. Speed Lines
+        if (this.currentSpeedKmh > 220 || this.nitroBoost > 0) {
+            ctx.strokeStyle = this.nitroBoost > 0 ? 'rgba(0, 255, 255, 0.35)' : 'rgba(0, 255, 255, 0.18)';
+            ctx.lineWidth = this.nitroBoost > 0 ? 2.5 : 1.5;
             for (let sl of this.speedLines) {
-                sl.y += sl.speed * (this.currentSpeedKmh / 60);
+                sl.y += sl.speed * (this.currentSpeedKmh / 50);
                 if (sl.y > this.canvas.height) {
                     sl.y = -sl.length;
                     sl.x = Math.random() * this.canvas.width;
@@ -568,7 +761,7 @@ class F1RacingGame {
             this.drawF1Car(enemy.x, enemy.y, enemy.width, enemy.height, enemy.color, 0, false);
         }
 
-        // 6. Render Exhaust Sparks
+        // 6. Render Exhaust Sparks & Nitro Thrust
         for (let sp of this.car.sparks) {
             ctx.fillStyle = sp.color;
             ctx.globalAlpha = Math.max(0, sp.life);
@@ -580,10 +773,26 @@ class F1RacingGame {
 
         // 7. Render Player Car
         if (this.state !== 'GAMEOVER') {
-            this.drawF1Car(this.car.x, this.car.y, this.car.width, this.car.height, '#ff0033', this.car.tilt, true);
+            const isBlinking = this.invulnerableTimer > 0 && Math.floor(Date.now() / 80) % 2 === 0;
+            if (!isBlinking) {
+                // Render Shield Barrier Aura if shields active
+                if (this.shields > 0) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(0, 229, 255, 0.7)';
+                    ctx.shadowColor = '#00e5ff';
+                    ctx.shadowBlur = 18;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.ellipse(this.car.x, this.car.y + this.car.height / 2, this.car.width * 0.75, this.car.height * 0.65, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                this.drawF1Car(this.car.x, this.car.y, this.car.width, this.car.height, '#ff0033', this.car.tilt, true);
+            }
         }
 
-        // 8. Explosion Particles on Crash
+        // 8. Explosion Particles on Crash/Shield
         for (let p of this.particles) {
             ctx.fillStyle = p.color;
             ctx.globalAlpha = Math.max(0, p.life);
@@ -595,6 +804,25 @@ class F1RacingGame {
             p.life -= p.decay;
         }
         ctx.globalAlpha = 1.0;
+
+        // 9. Render Floating Great Escape & Shield Banners
+        for (let ep of this.escapePopups) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.font = '900 1.6rem Outfit, sans-serif';
+            ctx.fillStyle = ep.color || '#ffcc00';
+            ctx.shadowColor = ep.color || '#ffcc00';
+            ctx.shadowBlur = 15;
+            ctx.globalAlpha = Math.max(0, Math.min(1.0, ep.alpha));
+            ctx.fillText(ep.text, ep.x, ep.y);
+
+            if (ep.pts) {
+                ctx.font = '800 1.1rem Outfit, sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(ep.pts, ep.x, ep.y + 22);
+            }
+            ctx.restore();
+        }
 
         ctx.restore();
     }

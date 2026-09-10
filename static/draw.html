@@ -41,14 +41,26 @@
 
             <!-- ACTION CONTROLS -->
             <div class="draw-actions">
+                <div class="mode-selector">
+                    <span class="mode-lbl">MODE</span>
+                    <button id="mode-pinch" class="mode-btn active" title="Pinch to Draw (Hover pointer to aim, pinch to write)">👌 PINCH</button>
+                    <button id="mode-freehand" class="mode-btn" title="Always Draw as hand moves">✨ FLOW</button>
+                </div>
+
                 <div class="size-selector">
                     <span class="size-lbl">SIZE</span>
                     <button class="size-btn" data-size="30">S</button>
-                    <button class="size-btn active" data-size="48">M</button>
-                    <button class="size-btn" data-size="64">L</button>
+                    <button class="size-btn active" data-size="44">M</button>
+                    <button class="size-btn" data-size="60">L</button>
                 </div>
 
-                <button id="btn-clear" class="hud-action-btn btn-clear-canvas gesture-btn" title="Clear Canvas (Fist ✊)">
+                <button id="btn-undo" class="hud-action-btn btn-undo-canvas gesture-btn" title="Undo Last Stroke (Z / ✌️)">
+                    <span>↩️ UNDO</span>
+                </button>
+                <button id="btn-eraser" class="hud-action-btn btn-eraser gesture-btn" title="Toggle Eraser (or Fist ✊)">
+                    <span>🧽 ERASE</span>
+                </button>
+                <button id="btn-clear" class="hud-action-btn btn-clear-canvas gesture-btn" title="Clear Canvas">
                     <span>🧹 CLEAR</span>
                 </button>
                 <button id="btn-save" class="hud-action-btn btn-save-art gesture-btn" title="Save Artwork PNG">
@@ -108,23 +120,23 @@
                 <div class="controls-grid">
                     <div class="control-card">
                         <div class="ctrl-icon">☝</div>
-                        <div class="ctrl-title">POINT INDEX FINGER</div>
-                        <div class="ctrl-desc">Move finger across black screen to draw letters like "hii" or shapes in flowers</div>
-                    </div>
-                    <div class="control-card">
-                        <div class="ctrl-icon">🌸</div>
-                        <div class="ctrl-title">BLOOMING FLOWERS</div>
-                        <div class="ctrl-desc">Every movement sprouts blooming flowers and leafy vines along your path</div>
+                        <div class="ctrl-title">POINT & AIM FREELY</div>
+                        <div class="ctrl-desc">Move your hand across the screen to aim your cursor without accidental blobs</div>
                     </div>
                     <div class="control-card">
                         <div class="ctrl-icon">👌</div>
-                        <div class="ctrl-title">PINCH (THUMB + INDEX)</div>
-                        <div class="ctrl-desc">Pinch to select flower types or click canvas controls</div>
+                        <div class="ctrl-title">PINCH TO DRAW</div>
+                        <div class="ctrl-desc">Pinch thumb + index (or click) to draw smooth glowing vines with blooming flowers (write words like "hii"!)</div>
                     </div>
                     <div class="control-card">
                         <div class="ctrl-icon">✊</div>
                         <div class="ctrl-title">CLOSE WRIST (ERASE)</div>
-                        <div class="ctrl-desc">Close your wrist (make a fist) to erase flowers under your pointer. Open hand draws flowers without erasing!</div>
+                        <div class="ctrl-desc">Make a fist or click ERASE to wipe flowers under your pointer</div>
+                    </div>
+                    <div class="control-card">
+                        <div class="ctrl-icon">↩️</div>
+                        <div class="ctrl-title">EASY UNDO</div>
+                        <div class="ctrl-desc">Click UNDO or press Z / make Peace sign ✌️ to step back any stroke</div>
                     </div>
                 </div>
 
