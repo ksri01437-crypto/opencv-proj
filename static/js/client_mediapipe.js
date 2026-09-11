@@ -22,6 +22,10 @@ class ClientMediaPipeEngine {
         this.isPinching = false;
         this.pinchStartTime = 0;
 
+        // Scroll Tracking State
+        this.prevScrollY = null;
+        this.lastScrollTime = 0;
+
         // Cooldowns for discrete actions
         this.actionCooldownUntil = 0;
         this.fistTriggered = false;
@@ -30,7 +34,12 @@ class ClientMediaPipeEngine {
 
         this.isCameraActive = false;
         this.isLoopRunning = false;
+        this.isProcessing = false;
         this.cameraError = null;
+
+        // Background Keep-Alive for Minimized Windows
+        this.bgWorker = null;
+        this.audioCtx = null;
 
         // Callback hooks for UI and Dashboards
         this.onGestureData = null;
@@ -109,7 +118,7 @@ class ClientMediaPipeEngine {
                     this.cameraError = "Permission Denied: Click lock icon in browser URL bar to allow camera";
                     break;
                 } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                    this.cameraError = "Camera in use: Close other apps/Python OpenCV using webcam";
+                    this.cameraError = "Camera in use: Close other apps using webcam";
                 } else if (err.name === 'NotFoundError') {
                     this.cameraError = "No camera device detected on this system";
                     break;
@@ -168,21 +177,94 @@ class ClientMediaPipeEngine {
         }
     }
 
-    async startFrameLoop() {
-        const processFrame = async () => {
-            if (this.video && this.video.readyState >= 2 && this.isCameraActive && this.hands) {
-                try {
-                    await this.hands.send({ image: this.video });
-                } catch (err) {
-                    // Ignore frame drop errors
+    initBackgroundKeepAlive() {
+        try {
+            // AudioContext keep-alive: prevents browser from suspending MediaStream in background/minimized tabs
+            if (!this.audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    this.audioCtx = new AudioContext();
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    gain.gain.value = 0.00001; // completely silent/inaudible
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start();
                 }
-                this.drawOverlay();
-            } else if (!this.isCameraActive) {
+            }
+        } catch (e) {}
+
+        try {
+            // Web Worker timer: fires continuously at ~35 FPS even when window is minimized or hidden
+            if (!this.bgWorker && typeof Worker !== 'undefined') {
+                const workerScript = `
+                    let interval = null;
+                    self.onmessage = function(e) {
+                        if (e.data === 'start') {
+                            if (!interval) {
+                                interval = setInterval(() => self.postMessage('tick'), 28);
+                            }
+                        } else if (e.data === 'stop') {
+                            if (interval) { clearInterval(interval); interval = null; }
+                        }
+                    };
+                `;
+                const blob = new Blob([workerScript], { type: 'application/javascript' });
+                this.bgWorker = new Worker(URL.createObjectURL(blob));
+                this.bgWorker.onmessage = () => {
+                    if (document.hidden && this.isCameraActive) {
+                        this.triggerProcessFrame();
+                    }
+                };
+                this.bgWorker.postMessage('start');
+            }
+        } catch (e) {}
+    }
+
+    async startFrameLoop() {
+        this.initBackgroundKeepAlive();
+
+        const loop = async () => {
+            if (!document.hidden) {
+                await this.triggerProcessFrame();
+            }
+            requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+    }
+
+    async triggerProcessFrame() {
+        if (this.video && this.video.readyState >= 2 && this.isCameraActive && this.hands && !this.isProcessing) {
+            this.isProcessing = true;
+            try {
+                await this.hands.send({ image: this.video });
+            } catch (err) {
+                // Ignore frame drop errors
+            } finally {
+                this.isProcessing = false;
+            }
+            if (!document.hidden) {
                 this.drawOverlay();
             }
-            requestAnimationFrame(processFrame);
-        };
-        requestAnimationFrame(processFrame);
+        } else if (!this.isCameraActive && !document.hidden) {
+            this.drawOverlay();
+        }
+    }
+
+    async togglePictureInPicture() {
+        if (!this.video) return false;
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+                return false;
+            } else if (document.pictureInPictureEnabled) {
+                await this.video.requestPictureInPicture();
+                return true;
+            }
+        } catch (e) {
+            console.warn("PiP not supported or rejected:", e);
+        }
+        return false;
     }
 
     emitGestureData(data) {
@@ -200,6 +282,7 @@ class ClientMediaPipeEngine {
         if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
             this.lastHandLandmarks = null;
             this.currentGesture = 'none';
+            this.prevScrollY = null;
             if (this.isPinching) {
                 this.isPinching = false;
             }
@@ -250,9 +333,15 @@ class ClientMediaPipeEngine {
         const isRingExtended = Math.hypot(ringTip.x - wrist.x, ringTip.y - wrist.y) > Math.hypot(ringPip.x - wrist.x, ringPip.y - wrist.y) * 1.15;
         const isPinkyExtended = Math.hypot(pinkyTip.x - wrist.x, pinkyTip.y - wrist.y) > Math.hypot(pinkyPip.x - wrist.x, pinkyPip.y - wrist.y) * 1.15;
 
-        // --- 2. Distances for Pinch Gestures ---
+        // --- 2. Depth-Invariant Hand Scale & Distances ---
+        const handScale = Math.max(0.04, Math.hypot(indexMcp.x - wrist.x, indexMcp.y - wrist.y));
         const pinchIndexDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
         const pinchMiddleDist = Math.hypot(thumbTip.x - middleTip.x, thumbTip.y - middleTip.y);
+        const indexMiddleDist = Math.hypot(indexTip.x - middleTip.x, indexTip.y - middleTip.y);
+
+        const relPinchDist = pinchIndexDist / handScale;
+        const relMiddlePinchDist = pinchMiddleDist / handScale;
+        const relIndexMiddleDist = indexMiddleDist / handScale;
 
         // --- 3. Check Fist Gesture ✊ (All 4 fingers curled) ---
         const tips = [8, 12, 16, 20];
@@ -263,7 +352,7 @@ class ClientMediaPipeEngine {
             const mcp = landmarks[mcps[i]];
             const tipDist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
             const mcpDist = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y);
-            if (tipDist > mcpDist * 1.25) {
+            if (tipDist > mcpDist * 1.20) {
                 isFist = false;
                 break;
             }
@@ -272,6 +361,7 @@ class ClientMediaPipeEngine {
         // --- 4. Gesture Priority Evaluation ---
         if (isFist) {
             gesture = 'fist';
+            this.prevScrollY = null;
             if (!this.fistTriggered && now > this.actionCooldownUntil) {
                 action = 'toggle_control';
                 this.fistTriggered = true;
@@ -281,9 +371,10 @@ class ClientMediaPipeEngine {
             this.fistTriggered = false;
 
             // Pinch (Index + Thumb) 👌 -> Left Click / Drag & Drop
-            if (pinchIndexDist < 0.055) {
+            if (relPinchDist < 0.36) {
                 gesture = 'pinch';
                 this.isPinching = true;
+                this.prevScrollY = null;
 
                 if (!this.pinchTriggered && now > this.actionCooldownUntil) {
                     action = 'left_click';
@@ -294,12 +385,13 @@ class ClientMediaPipeEngine {
                 this.isPinching = false;
                 this.pinchTriggered = false;
 
-                // Peace Sign ✌️ (Index & Middle extended, Ring & Pinky curled) OR Middle-Thumb Pinch -> Right Click
-                const isPeaceSign = isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended;
-                const isMiddlePinch = pinchMiddleDist < 0.055;
+                // Peace Sign ✌️ (2 Fingers Extended) OR Middle-Thumb Pinch -> Right Click
+                const isPeaceSign = isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended && relIndexMiddleDist > 0.40;
+                const isMiddlePinch = relMiddlePinchDist < 0.35;
 
                 if (isPeaceSign || isMiddlePinch) {
                     gesture = 'peace';
+                    this.prevScrollY = null;
                     if (!this.peaceTriggered && now > this.actionCooldownUntil) {
                         action = 'right_click';
                         this.peaceTriggered = true;
@@ -308,12 +400,30 @@ class ClientMediaPipeEngine {
                 } else {
                     this.peaceTriggered = false;
 
-                    // Open Palm 🖐️ (All fingers extended)
-                    if (isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
-                        gesture = 'open_palm';
-                    } else if (isIndexExtended) {
-                        // Pointing ☝
-                        gesture = 'pointing';
+                    // Scroll Wheel 📜: Index + Middle Extended Close Together
+                    const isScrollPose = isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended && relIndexMiddleDist <= 0.38;
+                    if (isScrollPose) {
+                        gesture = 'scroll';
+                        const currScrollY = (indexTip.y + middleTip.y) / 2.0;
+
+                        if (this.prevScrollY !== null) {
+                            const dy = currScrollY - this.prevScrollY;
+                            if (Math.abs(dy) > 0.012 && now - this.lastScrollTime > 60) {
+                                action = dy < 0 ? 'scroll_up' : 'scroll_down';
+                                this.lastScrollTime = now;
+                            }
+                        }
+                        this.prevScrollY = currScrollY;
+                    } else {
+                        this.prevScrollY = null;
+
+                        // Open Palm 🖐️ (All fingers extended)
+                        if (isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
+                            gesture = 'open_palm';
+                        } else if (isIndexExtended) {
+                            // Pointing ☝
+                            gesture = 'pointing';
+                        }
                     }
                 }
             }

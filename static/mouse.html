@@ -3,61 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🖱️ GESTURE MOUSE - 100% Hand-Controlled OS Mouse</title>
+    <title>🖱️ REAL COMPUTER MOUSE - 100% Hand-Controlled OS Mouse</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 
+    <!-- MediaPipe Hands & Camera Utils -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body class="mouse-page">
     <div class="mouse-dashboard">
-        <!-- DASHBOARD HEADER -->
+        <!-- TOP BRAND & CONTROLS HEADER -->
         <header class="dash-header">
             <div class="dash-brand">
                 <a href="/" class="back-link">🏠 HOME</a>
                 <span class="dash-logo">🖱️</span>
-                <h1 class="dash-title">REAL COMPUTER MOUSE CONTROL</h1>
+                <div class="dash-title-group">
+                    <h1 class="dash-title">REAL COMPUTER MOUSE</h1>
+                    <span class="dash-subtitle">100% SYSTEM-WIDE HAND GESTURE CONTROL</span>
+                </div>
             </div>
             <div class="dash-controls">
+                <button id="pip-toggle-btn" class="toggle-btn" title="Pop out camera into a floating desktop window">
+                    🗖 FLOATING CAM (PIP)
+                </button>
                 <button id="camera-toggle-btn" class="toggle-btn active">
                     <span class="dot-indicator green">●</span> CAMERA: ON
                 </button>
                 <button id="toggle-mouse-btn" class="toggle-btn active">
-                    <span class="dot-indicator green">●</span> MOUSE CONTROL: ACTIVE
+                    <span class="dot-indicator green">●</span> MOUSE: ACTIVE
                 </button>
             </div>
         </header>
 
-        <!-- DASHBOARD BODY -->
+        <!-- SYSTEM-WIDE BACKGROUND BANNER -->
+        <div class="system-mouse-banner">
+            <div class="banner-badge">🟢 REAL OS MOUSE ACTIVE</div>
+            <div class="banner-content">
+                <h2>🚀 WORKS OUTSIDE THIS BROWSER ACROSS ALL WINDOWS</h2>
+                <p>
+                    Moves your real laptop cursor, clicks, drags, right clicks, and scrolls anywhere on Windows! You can <strong>MINIMIZE this browser window</strong> or click <strong>Floating Cam (PiP)</strong> to keep a small preview on top of your desktop while using any software.
+                </p>
+            </div>
+            <button id="btn-minimize-tip" class="banner-btn" onclick="alert('You can now minimize this browser window with the minus (_) button at the top right of your browser, and your hand will control your entire PC!')">
+                🗕 MINIMIZE WINDOW
+            </button>
+        </div>
+
+        <!-- MAIN DASHBOARD CONTENT -->
         <main class="dash-main">
-            <!-- LEFT PANEL: CAMERA VIEW -->
+            <!-- LEFT PANEL: LIVE CAMERA FEED WITH GLOWING SKELETON HUD -->
             <section class="dash-card camera-card">
                 <div class="card-header">
-                    <h3>📷 LIVE WEBCAM FEED</h3>
-                    <span class="live-badge"><span class="pulse-dot">●</span> LIVE</span>
+                    <h3>📷 LIVE WEBCAM TRACKING</h3>
+                    <span id="fps-badge" class="live-badge"><span class="pulse-dot">●</span> LIVE 60 FPS</span>
                 </div>
                 <div class="dash-camera-view camera-view">
                     <video id="webcam-video" autoplay playsinline muted></video>
                     <canvas id="camera-overlay-canvas"></canvas>
                 </div>
+                <div class="camera-hint">
+                    Point index finger to aim. Web Worker keeps tracking active even when this tab is minimized.
+                </div>
             </section>
 
-            <!-- RIGHT PANEL: GESTURE STATUS & LIVE METRICS -->
+            <!-- RIGHT PANEL: REAL-TIME TELEMETRY & GESTURE REFERENCE -->
             <section class="dash-card status-card">
                 <div class="card-header">
-                    <h3>📊 LIVE HAND TELEMETRY</h3>
+                    <h3>📊 REAL-TIME MOUSE TELEMETRY</h3>
+                    <span id="tel-status-pill" class="status-pill active">ACTIVE</span>
                 </div>
 
                 <div class="telemetry-grid">
                     <div class="tel-item">
-                        <span class="tel-lbl">OS CURSOR POSITION</span>
-                        <span id="tel-cursor-pos" class="tel-val">X: 960 | Y: 540</span>
+                        <span class="tel-lbl">REAL OS CURSOR POSITION</span>
+                        <span id="tel-cursor-pos" class="tel-val">X: -- | Y: --</span>
                     </div>
                     <div class="tel-item">
-                        <span class="tel-lbl">HAND GESTURE</span>
+                        <span class="tel-lbl">CURRENT HAND GESTURE</span>
                         <span id="tel-hand-status" class="tel-val highlight">☝ MOVING OS CURSOR</span>
                     </div>
                     <div class="tel-item">
@@ -69,19 +94,60 @@
                         <span id="tel-right-click" class="tel-val">READY (PEACE SIGN)</span>
                     </div>
                     <div class="tel-item">
+                        <span class="tel-lbl">SCROLL WHEEL</span>
+                        <span id="tel-scroll" class="tel-val">READY (2 FINGERS)</span>
+                    </div>
+                    <div class="tel-item">
                         <span class="tel-lbl">SYSTEM ACTION</span>
                         <span id="tel-action" class="tel-val action-tag">IDLE</span>
                     </div>
                 </div>
 
                 <div class="guide-box">
-                    <h4>💡 100% HAND GESTURE REFERENCE GUIDE</h4>
-                    <ul>
-                        <li><strong>☝ Index Finger Pointing:</strong> Moves real OS laptop mouse cursor across screen</li>
-                        <li><strong>👌 Index + Thumb Pinch:</strong> Triggers real OS Left Click (Hold to Drag & Drop)</li>
-                        <li><strong>✌️ Peace Sign (2 Fingers):</strong> Triggers real OS Right Click</li>
-                        <li><strong>✊ Make a Fist:</strong> Toggles Mouse Control ON / OFF</li>
-                        <li><strong>🖐️ Open Palm:</strong> Neutral Navigation / Hover</li>
+                    <h4>💡 COMPLETE REAL COMPUTER MOUSE GESTURE GUIDE</h4>
+                    <ul class="gesture-guide-list">
+                        <li>
+                            <span class="g-icon">☝</span>
+                            <div class="g-info">
+                                <strong>Point Index Finger:</strong>
+                                <span>Moves real Windows cursor across your screens, desktop, and all applications.</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="g-icon">👌</span>
+                            <div class="g-info">
+                                <strong>Pinch Tap (Thumb + Index):</strong>
+                                <span>Real Left Click. Quick double tap triggers <strong>Double Click</strong> (opens desktop icons, files & apps).</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="g-icon">✊🖐</span>
+                            <div class="g-info">
+                                <strong>Pinch & Hold (>0.3s):</strong>
+                                <span>Real <strong>Drag & Drop</strong> (selects text, drags files, moves desktop windows). Release pinch to drop.</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="g-icon">✌️</span>
+                            <div class="g-info">
+                                <strong>Peace Sign (2 Fingers):</strong>
+                                <span>Real <strong>Right Click</strong> (instantly opens context menus anywhere on Windows).</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="g-icon">📜</span>
+                            <div class="g-info">
+                                <strong>Two Fingers Together Up / Down:</strong>
+                                <span>Real <strong>Mouse Wheel Scroll</strong> (smoothly scrolls web pages, documents, folders, and apps).</span>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="g-icon">✊</span>
+                            <div class="g-info">
+                                <strong>Make a Fist:</strong>
+                                <span>Quickly <strong>Pauses / Resumes</strong> mouse tracking so you can type on your keyboard or rest your hand.</span>
+                            </div>
+                        </li>
                     </ul>
                 </div>
             </section>

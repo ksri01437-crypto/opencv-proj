@@ -14,7 +14,7 @@ from gesture_engine import GestureEngine
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("GesturePlatform")
 
-app = FastAPI(title="Hand + Eye Gesture Platform (Game + Mouse)")
+app = FastAPI(title="Hand Gesture Platform (Games + Real System Mouse)")
 
 # Static Directory Setup
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -43,7 +43,7 @@ class ConnectionManager:
         for connection in list(self.active_connections):
             try:
                 await connection.send_json(message)
-            except Exception as e:
+            except Exception:
                 self.disconnect(connection)
 
 game_manager = ConnectionManager("GAME")
@@ -52,22 +52,9 @@ mouse_manager = ConnectionManager("MOUSE")
 game_gesture_engine = GestureEngine(mode="game")
 mouse_gesture_engine = GestureEngine(mode="mouse")
 
-# Camera capture on backend is optional / on-demand so it doesn't lock the Windows webcam device
-camera_running = False
-cap = None
-
-async def webcam_worker():
-    """
-    Optional backend camera worker. Only runs if client explicitly connects in backend-capture mode,
-    leaving the camera device free for the browser client MediaPipe.
-    """
-    global camera_running, cap
-    logger.info("Backend camera worker standby. Camera released for browser client.")
-
 @app.on_event("startup")
 async def startup_event():
-    logger.info("FastAPI Server started. Browser-based MediaPipe is active.")
-
+    logger.info("FastAPI Server started. Browser-based MediaPipe is active. Camera is 100% free.")
 
 # ROUTING
 @app.get("/")
@@ -92,12 +79,12 @@ async def get_draw():
 async def get_mouse():
     return FileResponse(os.path.join(static_dir, "mouse.html"))
 
-
+# STATUS ENDPOINT
 @app.get("/api/status")
 async def get_status():
     return {
         "status": "online",
-        "camera_running": camera_running,
+        "mouse_enabled": mouse_gesture_engine.mouse_enabled,
         "active_game_clients": len(game_manager.active_connections),
         "active_mouse_clients": len(mouse_manager.active_connections)
     }
@@ -123,13 +110,20 @@ async def websocket_mouse(websocket: WebSocket):
                 # Receive client gesture data from browser MediaPipe for PyAutoGUI execution
                 action_type = msg.get("action")
                 pointer_data = msg.get("pointer")
-                is_pinch = msg.get("gesture") == "pinch"
+                is_pinch = (msg.get("gesture") == "pinch") or msg.get("is_pinch", False)
+                gesture = msg.get("gesture")
 
-                mouse_gesture_engine.execute_mouse_action(action_type, pointer_data, is_pinch)
+                mouse_gesture_engine.execute_mouse_action(
+                    action_type=action_type,
+                    pointer_data=pointer_data,
+                    is_pinch=is_pinch,
+                    gesture=gesture,
+                    extra=msg
+                )
             except Exception:
                 pass
     except WebSocketDisconnect:
         mouse_manager.disconnect(websocket)
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
